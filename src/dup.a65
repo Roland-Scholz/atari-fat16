@@ -3,7 +3,7 @@
 		.I8
 	.ENDIF
 	
-	.IF PLATFORM=2
+	.IF PLATFORM = 2 || PLATFORM = 4
 		.include "fat16.inc"
 		.include "atarixl.inc"
 
@@ -14,7 +14,7 @@ FINIT		= $2E2
 		.ORG DUPCODE
 	.ENDIF
 
-	.IF PLATFORM=3
+	.IF PLATFORM = 3
 		.include "fat16.inc"
 		.include "homebrew.inc"
 		.include "myos.inc"
@@ -36,7 +36,7 @@ DUPINIT1:	STA	FNAME,x
 		LDA	#$4C
 		STA	JMPIND
 
-	.IF PLATFORM=2
+	.IF PLATFORM = 2 || PLATFORM = 4
 		LDX	#$70
 		LDA	#OPEN
 		STA 	ICCOM,X
@@ -168,9 +168,14 @@ ERR:		TYA
 ERRPRT:		JSR 	JPUTHEX
 		JSR 	GETCHAR
 		JMP 	MENU
-		
-LOAD:		JSR 	PRINTSPEC
-		
+
+;-------------------------------------------------------------------------------
+; Load File
+; - Print Filespec
+; - Get String
+; - Load file in Chunks
+;-------------------------------------------------------------------------------	
+LOAD:		JSR 	PRINTSPEC	
 		JSR 	GETSTR
 		BMI 	ERR
 		JSR 	LOADFIL
@@ -186,11 +191,10 @@ LOADFIL:	LDA 	#<LABRTS
 		JSR 	CORRNAME
 	
 		JSR 	FOPEN
+		BMI 	ERR1				
+		JSR 	FGETST		;get 2 bytes in ASTART
 		BMI 	ERR1
-		
-		JSR 	FGETST
-		BMI 	ERR1
-		
+
 		LDA 	#$FF		;check if first 2-bytes are $FF
 		CMP 	ASTART		;if not, close and exit
 		BNE 	MCLOSE
@@ -234,12 +238,16 @@ MCLOSE:		JMP 	FCLOSE
 
 				
 FGOTO:		JSR 	FCLOSE
-		SEC
-		LDX	#<READYSTR
-		LDA	#>READYSTR
-		JSR	JPRINTSTR
+;		SEC
+;		LDX	#<READYSTR
+;		LDA	#>READYSTR
+;		JSR	JPRINTSTR
+;		JSR	GETCHAR
+
+		LDA	#4					;key still pressed
+FGOTO1:		BIT	SKSTAT			
+		BEQ	FGOTO1					;yes, loop
 		
-		JSR	GETCHAR
 		LDA 	FVEC
 		STA 	JMPPTR
 		LDA 	FVEC+1
@@ -490,7 +498,7 @@ FGETDIR:	LDX 	#$10
 		STA 	ICCOM,X
 		JMP 	FOPEN3
 		
-FGETST:		LDX 	#$10
+FGETST:		LDX 	#$10				;read 2 bytes to ASTART
 		LDA 	#<ASTART
 		STA 	ICBAL,X
 		LDA 	#>ASTART
@@ -620,8 +628,13 @@ UPPEREND:	rts
 		
 ;
 DUPMENU:	.byte CLS
-		.byte "FAT-16 DOS (c) by "
-		.byte "R. Scholz"
+		.byte "FAT-1"
+	.IF PLATFORM = 4
+		.byte "2"
+	.ELSE	
+		.byte "6"
+	.ENDIF
+		.byte " DOS (c) by R. Scholz"
 		.byte EOL,EOL
 		.byte "A - Display Dir"
 		.byte EOL

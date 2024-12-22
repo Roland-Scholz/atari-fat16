@@ -3,6 +3,7 @@
 ; PLATFORM = 1 : Homebrew Hardware
 ; PLATFORM = 2 : Atari XL/XE
 ; PLATFORM = 3 : my65816 FPGA
+; PLATFORM = 4 : Atari XL/XE Fat12
 ;
 ;
 ; FAT-16 defines
@@ -15,6 +16,7 @@ FATPTRD		= $0008
 	.ELSE
 FATPTRS		= $0000
 FATPTRD		= $0002
+SECTOR		= FMSZPG
 	.ENDIF
 
 ;--------------------------------------------------------------
@@ -28,10 +30,10 @@ VBASE		= $400
 ;VBASE		= $400
 ;	.ENDIF
 	
-	.IF PLATFORM = 2
+	.IF PLATFORM = 2 || PLATFORM = 4
 VBASE		= $700
 FATCODE		= VBASE+$600
-DUPCODE		= $1C00
+DUPCODE		= $1a40
 
 JSTARTUP	= FATCODE
 JPRINT		= FATCODE+3
@@ -62,7 +64,7 @@ MEDIA		= V+8		;1
 SECSFAT		= V+9		;2
 FCBCODE		= V+11 		;1
 		
-SECTOR		= V+12		;4
+dummy		= V+12		;4
 FATBASE		= V+16		;4
 DIRBASE		= V+20		;4
 DATBASE		= V+24		;4
