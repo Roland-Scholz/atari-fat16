@@ -1,0 +1,4188 @@
+ca65 V2.17 - Git 59ab140
+Main file   : ..\src\fat16.a65
+Current file: ..\src\fat16.a65
+
+000000r 1               DEBUG .set 0
+000000r 1               
+000000r 1               .macro	cmp_icbalz_y
+000000r 1               	.IF PLATFORM=0
+000000r 1               		CMP [ICBALZ],Y
+000000r 1               	.ELSE
+000000r 1               		CMP (ICBALZ),Y
+000000r 1               	.ENDIF
+000000r 1               .endmacro
+000000r 1               
+000000r 1               .macro	lda_icbalz_y
+000000r 1               	.IF PLATFORM=0
+000000r 1               		LDA [ICBALZ],Y
+000000r 1               	.ELSE
+000000r 1               		LDA (ICBALZ),Y
+000000r 1               	.ENDIF
+000000r 1               .endmacro
+000000r 1               
+000000r 1               .macro	sta_icbalz_y
+000000r 1               	.IF PLATFORM=0
+000000r 1               		STA [ICBALZ],Y
+000000r 1               	.ELSE
+000000r 1               		STA (ICBALZ),Y
+000000r 1               	.ENDIF
+000000r 1               .endmacro
+000000r 1               
+000000r 1               	.IF PLATFORM = 2 || PLATFORM = 4
+000000r 1               		.include "atarixl.inc"
+000000r 2               ;	SPACE	4,10
+000000r 2               ;***	Copyright 1984 ATARI.  Unauthorized reproduction, adaptation,
+000000r 2               ;*	distribution, performance or display of this computer program
+000000r 2               ;*	or the associated audiovisual work is strictly prohibited.
+000000r 2               ;	SPACE	4,10
+000000r 2               ;***	OS - Operating System
+000000r 2               ;*
+000000r 2               ;*	NOTES
+000000r 2               ;*		This represents an attempt to bring the OS :
+000000r 2               ;*		into conformance with the Atari Internal So:
+000000r 2               ;*		Standards as defined in the Software Develo:
+000000r 2               ;*		Committee Report on Procedures And Standard:
+000000r 2               ;*		(10/27/81).  Due to time constraints, the e:
+000000r 2               ;*		source could not be brought up to the stand:
+000000r 2               ;*		particularly in the area of subroutine head:
+000000r 2               ;*		documentation (ENTRY, EXIT, CHANGES and CAL:
+000000r 2               ;*		More complete and consistent conformance to:
+000000r 2               ;*		standard is planned for the next revision o:
+000000r 2               ;*		Operating System (Revision 3).
+000000r 2               ;*
+000000r 2               ;*	MODS
+000000r 2               ;*		Revision A (400/800)
+000000r 2               ;*		D. Crane/A. Miller/L. Kaplan/R. Whitehead
+000000r 2               ;*
+000000r 2               ;*		Revision B (400/800)
+000000r 2               ;*		Fix several problems.
+000000r 2               ;*		M. Mahar/R. S. Scheiman
+000000r 2               ;*
+000000r 2               ;*		Revision 10 (1200XL)
+000000r 2               ;*		Support 1200XL, add new features.
+000000r 2               ;*		H. Stewart/L. Winner/R. S. Scheiman/
+000000r 2               ;*		Y. M. Chen/M. W. Colburn	10/26/82
+000000r 2               ;*
+000000r 2               ;*		Revision 11 (1200XL)
+000000r 2               ;*		Fix several problems.
+000000r 2               ;*		R. S. Scheiman	12/23/82
+000000r 2               ;*
+000000r 2               ;*		Revision 1 (600XL/800XL)
+000000r 2               ;*		Support PBI and on-board BASIC.
+000000r 2               ;*		R. S. Scheiman/R. K. Nordin/Y. M. Chen	03/11/83
+000000r 2               ;*
+000000r 2               ;*		Revision 2 (600XL/800XL)
+000000r 2               ;*		Fix several problems.
+000000r 2               ;*		R. S. Scheiman	05/10/83
+000000r 2               ;*		Bring closer to Coding Standard (object unchanged).
+000000r 2               ;*		R. K. Nordin	11/01/83
+000000r 2               
+000000r 2               
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Program Structure
+000000r 2               ;*
+000000r 2               ;*	The sections of the OS appear in the following order with
+000000r 2               ;*	corresponding subtitles:
+000000r 2               ;*
+000000r 2               ;*	Equates and Definitions
+000000r 2               ;*
+000000r 2               ;*		System Symbol Equates
+000000r 2               ;*		System Address Equates
+000000r 2               ;*		Miscellaneous Address Equates
+000000r 2               ;*		Macro Definitions
+000000r 2               ;*
+000000r 2               ;*	Code and Data
+000000r 2               ;*
+000000r 2               ;*		First 8K ROM Identification and Checksum
+000000r 2               ;*
+000000r 2               ;*		Interrupt Handler
+000000r 2               ;*		Initialization
+000000r 2               ;*		Disk Input/Ouput
+000000r 2               ;*		Relocating Loader
+000000r 2               ;*		Self-test, Part 1
+000000r 2               ;*		Parallel Input/Output
+000000r 2               ;*		Peripheral Handler Loading Facility, Part 1
+000000r 2               ;*		Self-test, Part 2
+000000r 2               ;*		Peripheral Handler Loading Facility, Part 2
+000000r 2               ;*
+000000r 2               ;*		International Character Set
+000000r 2               ;*
+000000r 2               ;*		Self-test, Part 3
+000000r 2               ;*		Floating Point Package
+000000r 2               ;*
+000000r 2               ;*		Domestic Character Set
+000000r 2               ;*
+000000r 2               ;*		Device Handler Vector Tables
+000000r 2               ;*		Jump Vectors
+000000r 2               ;*		Generic Parallel Device Handler Vector Table
+000000r 2               ;*
+000000r 2               ;*		$E4C0 Patch
+000000r 2               ;*		Central Input/Output
+000000r 2               ;*		Peripheral Handler Loading Facility, Part 3
+000000r 2               ;*		$E912 Patch
+000000r 2               ;*		Peripheral Handler Loading Facility, Part 4
+000000r 2               ;*		$E959 Patch
+000000r 2               ;*		Serial Input/Output
+000000r 2               ;*		Keyboard, Editor and Screen Handler, Part 1
+000000r 2               ;*		Peripheral Handler Loading Facility, Part 5
+000000r 2               ;*		$EF6B Patch
+000000r 2               ;*		Keyboard, Editor and Screen Handler, Part 2
+000000r 2               ;*		$F223 Patch
+000000r 2               ;*		Keyboard, Editor and Screen Handler, Part 3
+000000r 2               ;*		$FCD8 Patch
+000000r 2               ;*		Cassette Handler
+000000r 2               ;*		Printer Handler
+000000r 2               ;*		Self-test, Part 4
+000000r 2               ;*
+000000r 2               ;*		Second 8K ROM Identification and Checksum
+000000r 2               ;*		6502 Machine Vectors
+000000r 2               ;	SUBTTL	'System Symbol Equates'
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Assembly Option Equates
+000000r 2               
+000000r 2               
+000000r 2               FALSE	=	0
+000000r 2               TRUE	=	1
+000000r 2               
+000000r 2               .define	VGC	TRUE	;virtual game controllers
+000000r 2               .define	RAMSYS	FALSE	;not RAM based system
+000000r 2               .define	LNBUG	FALSE	;no LNBUG interface
+000000r 2               .define	ACMI	FALSE	;no asynchronous communications mod:
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Identification Equates
+000000r 2               
+000000r 2               
+000000r 2               IDREV	=	$02	;identification revision number
+000000r 2               IDDAY	=	$10	;identification day
+000000r 2               IDMON	=	$05	;identification month
+000000r 2               IDYEAR	=	$83	;identification year
+000000r 2               IDCPU	=	$02	;identification CPU series
+000000r 2               IDPN1	=	'B'	;identification part number field 1
+000000r 2               IDPN2	=	'B'	;identification part number field 2
+000000r 2               IDPN3	=	$00	;identification part number field 3
+000000r 2               IDPN4	=	$00	;identification part number field 4
+000000r 2               IDPN5	=	$01	;identification part number field 5
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Configuration Equates
+000000r 2               ;*
+000000r 2               ;*	NOTES
+000000r 2               ;*		Problem: last byte of HATABS (as defined by:
+000000r 2               ;*		overlaps first power-up validation byte.
+000000r 2               
+000000r 2               
+000000r 2               MAXDEV	=	33	;offset to last possible entry of HATABS
+000000r 2               IOCBSZ	=	16	;length of IOCB
+000000r 2               
+000000r 2               SEIOCB	=	0*IOCBSZ	;screen editor IOCB index
+000000r 2               MAXIOC	=	8*IOCBSZ	;first invalid IOCB index
+000000r 2               
+000000r 2               DSCTSZ	=	128	;disk sector size
+000000r 2               
+000000r 2               LEDGE	=	2	;left edge
+000000r 2               REDGE	=	39	;right edge
+000000r 2               
+000000r 2               INIML	=	$0700	;initial MEMLO
+000000r 2               
+000000r 2               ICSORG	=	$CC00	;international character set origin
+000000r 2               DCSORG	=	$E000	;domestic character set origin
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	IOCB Command Code Equates
+000000r 2               
+000000r 2               
+000000r 2               OPEN	=	$03	;open
+000000r 2               GETREC	=	$05	;get record
+000000r 2               GETCHR	=	$07	;get character(s)
+000000r 2               PUTREC	=	$09	;put record
+000000r 2               PUTCHR	=	$0B	;put character(s)
+000000r 2               CLOSE	=	$0C	;close
+000000r 2               STATIS	=	$0D	;status
+000000r 2               SPECIL	=	$0E	;special
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Special Entry Command Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	Screen Commands
+000000r 2               
+000000r 2               DRAWLN	=	$11	;draw line
+000000r 2               FILLIN	=	$12	;draw line with right fill
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	ICAX1 Auxiliary Byte 1 Equates
+000000r 2               
+000000r 2               
+000000r 2               APPEND	=	$01	;open write append (D:) or screen read (E:)
+000000r 2               DIRECT	=	$02	;open for directory access (D:)
+000000r 2               OPNIN	=	$04	;open for input (all devices)
+000000r 2               OPNOT	=	$08	;open for output (all devices)
+000000r 2               MXDMOD	=	$10	;open for mixed mode (E:, S:)
+000000r 2               INSCLR	=	$20	;open for input without clearing screen (E:, S:)
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Device Code Equates
+000000r 2               
+000000r 2               
+000000r 2               CASSET	=	'C'	;cassette
+000000r 2               DISK	=	'D'	;disk
+000000r 2               SCREDT	=	'E'	;screen editor
+000000r 2               KBD	=	'K'	;keyboard
+000000r 2               PRINTR	=	'P'	;printer
+000000r 2               DISPLY	=	'S'	;screen display
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Character and Key Code Equates
+000000r 2               
+000000r 2               
+000000r 2               CLS	=	$7D	;clear screen
+000000r 2               EOL	=	$9B	;end of line (RETURN)
+000000r 2               
+000000r 2               HELP	=	$11	;key code for HELP
+000000r 2               CNTLF1	=	$83	;key code for CTRL-F1
+000000r 2               CNTLF2	=	$84	;key code for CTRL-F2
+000000r 2               CNTLF3	=	$93	;key code for CTRL-F3
+000000r 2               CNTLF4	=	$94	;key code for CTRL-F4
+000000r 2               CNTL1	=	$9F	;key code for CTRL-1
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Status Code Equates
+000000r 2               
+000000r 2               
+000000r 2               SUCCES	=	1	;successful operation
+000000r 2               
+000000r 2               BRKABT	=	128	;BREAK key abort
+000000r 2               PRVOPN	=	129	;IOCB already open error
+000000r 2               NONDEV	=	130	;nonexistent device error
+000000r 2               WRONLY	=	131	;IOCB opened for write only error
+000000r 2               NVALID	=	132	;invalid command error
+000000r 2               NOTOPN	=	133	;device/file not open error
+000000r 2               BADIOC	=	134	;invalid IOCB index error
+000000r 2               RDONLY	=	135	;IOCB opened for read only error
+000000r 2               EOFERR	=	136	;end of file error
+000000r 2               TRNRCD	=	137	;truncated record error
+000000r 2               TIMOUT	=	138	;peripheral device timeout error
+000000r 2               DNACK	=	139	;device does not acknowledge command error
+000000r 2               FRMERR	=	140	;serial bus framing error
+000000r 2               CRSROR	=	141	;cursor overrange error
+000000r 2               OVRRUN	=	142	;serial bus data overrun error
+000000r 2               CHKERR	=	143	;serial bus checksum error
+000000r 2               DERROR	=	144	;device done (operation incomplete) error
+000000r 2               BADMOD	=	145	;bad screen mode number error
+000000r 2               FNCNOT	=	146	;function not implemented in handler error
+000000r 2               SCRMEM	=	147	;insufficient memory for screen mode error
+000000r 2               
+000000r 2               ;**	DCB Device Bus ID Equates
+000000r 2               
+000000r 2               
+000000r 2               DISKID	=	$31	;disk bus ID
+000000r 2               PDEVN	=	$40	;printer bus ID
+000000r 2               CASET	=	$60	;cassette bus ID
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Bus Command Equates
+000000r 2               
+000000r 2               
+000000r 2               FOMAT	=	'!'	;format command
+000000r 2               PUTSEC	=	'P'	;put sector command
+000000r 2               READ	=	'R'	;read command
+000000r 2               STATC	=	'S'	;status command
+000000r 2               WRITE	=	'W'	;write command
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Command Auxiliary Byte Equates
+000000r 2               
+000000r 2               
+000000r 2               DOUBLE	=	'D'	;print 20 characters double width
+000000r 2               NORMAL	=	'N'	;print 40 characters normally
+000000r 2               PLOT	=	'P'	;plot
+000000r 2               SIDWAY	=	'S'	;print 16 characters sideways
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Bus Response Equates
+000000r 2               
+000000r 2               
+000000r 2               ACK	=	'A'	;device acknowledged
+000000r 2               COMPLT	=	'C'	;device successfully completed operation
+000000r 2               ERROR	=	'E'	;device incurred error in attempted operation
+000000r 2               NACK	=	'N'	;device did not understand
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Floating Point Package Miscellaneous Equates
+000000r 2               
+000000r 2               
+000000r 2               FPREC	=	6	;precision
+000000r 2               
+000000r 2               FMPREC	=	FPREC-1	;length of mantissa
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Cassette Record Type Equates
+000000r 2               
+000000r 2               
+000000r 2               HDR	=	$FB	;header
+000000r 2               DTA	=	$FC	;data record
+000000r 2               DT1	=	$FA	;last data record
+000000r 2               EOT	=	$FE	;end of tape (file)
+000000r 2               
+000000r 2               TONE1	=	2	;record
+000000r 2               TONE2	=	1	;playback
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Cassette Timing Equates
+000000r 2               
+000000r 2               
+000000r 2               WLEADN	=	1152	;NTSC 19.2 second WRITE file leader
+000000r 2               RLEADN	=	576	;NTSC 9.6 second READ file leader
+000000r 2               WIRGLN	=	180	;NTSC 3.0 second WRITE IRG
+000000r 2               RIRGLN	=	120	;NTSC 2.0 second READ IRG
+000000r 2               WSIRGN	=	15	;NTSC 0.25 second WRITE short IRG
+000000r 2               RSIRGN	=	10	;NTSC 0.16 second READ short IRG
+000000r 2               BEEPNN	=	30	;NTSC 0.5 second beep duration
+000000r 2               BEEPFN	=	10	;NTSC 0.16 second beep separation
+000000r 2               
+000000r 2               WLEADP	=	960	;PAL 19.2 second WRITE file leader
+000000r 2               RLEADP	=	480	;PAL 9.6 second READ file leader
+000000r 2               WIRGLP	=	150	;PAL 3.0 second WRITE IRG
+000000r 2               RIRGLP	=	100	;PAL 2.0 second READ IRG
+000000r 2               WSIRGP	=	13	;PAL 0.25 second WRITE short IRG
+000000r 2               RSIRGP	=	8	;PAL 0.16 second READ short IRG
+000000r 2               BEEPNP	=	25	;PAL 0.5 second beep duration
+000000r 2               BEEPFP	=	8	;PAL 0.16 second beep separation
+000000r 2               
+000000r 2               WIRGHI	=	0	;high WRITE IRG
+000000r 2               RIRGHI	=	0	;high READ IRG
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Power-up Validation Byte Value Equates
+000000r 2               
+000000r 2               
+000000r 2               PUPVL1	=	$5C	;power-up validation value 1
+000000r 2               PUPVL2	=	$93	;power-up validation value 2
+000000r 2               PUPVL3	=	$25	;power-up validation value 3
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Relocating Loader Miscellaneous Equates
+000000r 2               
+000000r 2               
+000000r 2               DATAER	=	156	;end of record appears before END r:
+000000r 2               MEMERR	=	157	;memory insufficient for load error
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Miscellaneous Equates
+000000r 2               
+000000r 2               
+000000r 2               IOCFRE	=	$FF	;IOCB free indicator
+000000r 2               
+000000r 2               B19200	=	$0028	;19200 baud POKEY counter value
+000000r 2               B00600	=	$05CC	;600 baud POKEY counter value
+000000r 2               
+000000r 2               HITONE	=	$05	;FSK high freq. POKEY counter value (5326 Hz)
+000000r 2               LOTONE	=	$07	;FSK low freq. POKEY counter value (3995 Hz)
+000000r 2               
+000000r 2               NCOMLO	=	$34	;PIA lower NOT COMMAND line command
+000000r 2               NCOMHI	=	$3C	;PIA raise NOT COMMAND line command
+000000r 2               
+000000r 2               MOTRGO	=	$34	;PIA cassette motor ON command
+000000r 2               MOTRST	=	$3C	;PIA cassette motor OFF command
+000000r 2               
+000000r 2               NODAT	=	$00	;SIO immediate operation
+000000r 2               GETDAT	=	$40	;SIO read data frame
+000000r 2               PUTDAT	=	$80	;SIO write data frame
+000000r 2               
+000000r 2               CRETRI	=	13	;number of command frame retries
+000000r 2               DRETRI	=	1	;number of device retries
+000000r 2               CTIM	=	2	;command frame ACK timeout
+000000r 2               
+000000r 2               NBUFSZ	=	40	;print normal buffer size
+000000r 2               DBUFSZ	=	20	;print double buffer size
+000000r 2               SBUFSZ	=	29	;print sideways buffer size
+000000r 2               ;	SUBTTL	'System Address Equates'
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Zero Address Equates
+000000r 2               
+000000r 2               
+000000r 2               LNFLG	=	$0000	;1-byte LNBUG flag (0 = not LNBUG)
+000000r 2               NGFLAG	=	$0001	;1-byte memory status (0 = failure)
+000000r 2               
+000000r 2               ;	Not Cleared
+000000r 2               
+000000r 2               ;CASINI	=	$0002	;2-byte cassette program initialization address
+000000r 2               ;RAMLO	=	$0004	;2-byte RAM address for memory test
+000000r 2               ;TRAMSZ	=	$0006	;1-byte RAM size temporary
+000000r 2               ;CMCMD	=	$0007	;1-byte command communications
+000000r 2               
+000000r 2               ;	Cleared upon Coldstart Only
+000000r 2               
+000000r 2               ;WARMST	=	$0008	;1-byte warmstart flag (0 = coldstart)
+000000r 2               ;BOOT	=	$0009	;1-byte successful boot flags
+000000r 2               DOSVEC	=	$000A	;2-byte disk program start vector
+000000r 2               DOSINI	=	$000C	;2-byte disk program initialization address
+000000r 2               ;APPMHI	=	$000E	;2-byte applications memory high limit
+000000r 2               
+000000r 2               ;	Cleared upon Coldstart or Warmstart
+000000r 2               
+000000r 2               ;INTZBS	=	$0010	;first page zero location to clear
+000000r 2               
+000000r 2               ;POKMSK	=	$0010	;1-byte IRQEN shadow
+000000r 2               ;BRKKEY	=	$0011	;1-byte BREAK key flag (0 = no BREAK)
+000000r 2               ;RTCLOK	=	$0012	;3-byte real time clock (16 millisecond units)
+000000r 2               ;BUFADR	=	$0015	;2-byte disk interface buffer address
+000000r 2               ICCOMT	=	$0017	;1-byte CIO command table index
+000000r 2               ;DSKFMS	=	$0018	;2-byte DOS File Management System pointer
+000000r 2               ;DSKUTL	=	$001A	;2-byte DOS utility pointer
+000000r 2               ;ABUFPT	=	$001C	;4-byte ACMI buffer pointer area
+000000r 2               
+000000r 2               ZIOCB	=	$0020	;address of page zero IOCB
+000000r 2               IOCBAS	=	$0020	;16-byte page zero IOCB
+000000r 2               ICHIDZ	=	$0020	;1-byte handler ID ($FF = IOCB free)
+000000r 2               ICDNOZ	=	$0021	;1-byte device number
+000000r 2               ICCOMZ	=	$0022	;1-byte command code
+000000r 2               ICSTAZ	=	$0023	;1-byte status of last action
+000000r 2               ICBALZ	=	$0024	;1-byte low buffer address
+000000r 2               ICBAHZ	=	$0025	;1-byte high buffer address
+000000r 2               ICPTLZ	=	$0026	;1-byte low PUT-BYTE routine address-1
+000000r 2               ICPTHZ	=	$0027	;1-byte high PUT-BYTE routine address-1
+000000r 2               ICBLLZ	=	$0028	;1-byte low buffer length
+000000r 2               ICBLHZ	=	$0029	;1-byte high buffer length
+000000r 2               ICAX1Z	=	$002A	;1-byte first auxiliary information
+000000r 2               ICAX2Z	=	$002B	;1-byte second auxiliary information
+000000r 2               ICSPRZ	=	$002C	;4-byte spares
+000000r 2               
+000000r 2               ENTVEC	=	$002C	;2-byte (not used)
+000000r 2               ICIDNO	=	$002E	;1-byte IOCB index (IOCB number times IOCBSZ)
+000000r 2               CIOCHR	=	$002F	;1-byte character for current CIO operation
+000000r 2               
+000000r 2               STATUS	=	$0030	;1-byte SIO operation status
+000000r 2               CHKSUM	=	$0031	;1-byte checksum (single byte sum with carry)
+000000r 2               BUFRLO	=	$0032	;1-byte low data buffer address
+000000r 2               BUFRHI	=	$0033	;1-byte high data buffer address
+000000r 2               BFENLO	=	$0034	;1-byte low data buffer end address
+000000r 2               BFENHI	=	$0035	;1-byte high data buffer end address
+000000r 2               LTEMP	=	$0036	;2-byte relocating loader temporary
+000000r 2               BUFRFL	=	$0038	;1-byte data buffer full flag (0 = not full)
+000000r 2               RECVDN	=	$0039	;1-byte receive-frame done flag (0 = not done)
+000000r 2               XMTDON	=	$003A	;1-byte transmit-frame done flag (0 = not done)
+000000r 2               CHKSNT	=	$003B	;1-byte checksum sent flag (0 = not sent)
+000000r 2               NOCKSM	=	$003C	;1-byte no checksum follows data flag (0 = does)
+000000r 2               BPTR	=	$003D	;1-byte cassette buffer pointer
+000000r 2               FTYPE	=	$003E	;1-byte cassette IRG type (neg. = continuous)
+000000r 2               FEOF	=	$003F	;1-byte cassette EOF flag (0 = no EOF)
+000000r 2               FREQ	=	$0040	;1-byte cassette beep counter
+000000r 2               SOUNDR	=	$0041	;1-byte noisy I/O flag (0 = quiet)
+000000r 2               
+000000r 2               CRITIC	=	$0042	;1-byte critical section flag (0 = not critical)
+000000r 2               
+000000r 2               FMSZPG	=	$0043	;7-byte reserved for DOS File Management System
+000000r 2               
+000000r 2               ZCHAIN	=	$004A	;2-byte handler linkage chain point:
+000000r 2               DSTAT	=	$004C	;1-byte display status
+000000r 2               ATRACT	=	$004D	;1-byte attract-mode timer and flag
+000000r 2               DRKMSK	=	$004E	;1-byte attract-mode dark (luminance) mask
+000000r 2               COLRSH	=	$004F	;1-byte attract-mode color shift
+000000r 2               TMPCHR	=	$0050	;1-byte	temporary character
+000000r 2               HOLD1	=	$0051	;1-byte	temporary
+000000r 2               LMARGN	=	$0052	;1-byte text column left margin
+000000r 2               RMARGN	=	$0053	;1-byte text column right margin
+000000r 2               ROWCRS	=	$0054	;1-byte cursor row
+000000r 2               COLCRS	=	$0055	;2-byte cursor column
+000000r 2               DINDEX	=	$0057	;1-byte display mode
+000000r 2               SAVMSC	=	$0058	;2-byte saved memory scan counter
+000000r 2               OLDROW	=	$005A	;1-byte prior row
+000000r 2               OLDCOL	=	$005B	;2-byte prior column
+000000r 2               OLDCHR	=	$005D	;1-byte saved character under cursor
+000000r 2               OLDADR	=	$005E	;2-byte saved cursor memory address
+000000r 2               FKDEF	=	$0060	;2-byte function key definition tab:
+000000r 2               PALNTS	=	$0062	;1-byte PAL/NTSC indicator (0 = NTS:
+000000r 2               LOGCOL	=	$0063	;1-byte logical line cursor column
+000000r 2               ADRESS	=	$0064	;2-byte temporary address
+000000r 2               
+000000r 2               MLTTMP	=	$0066	;1-byte temporary
+000000r 2               OPNTMP	=	$0066	;1-byte open temporary
+000000r 2               TOADR	=	$0066	;2-byte destination address
+000000r 2               
+000000r 2               SAVADR	=	$0068	;2-byte saved address
+000000r 2               FRMADR	=	$0068	;2-byte source address
+000000r 2               
+000000r 2               RAMTOP	=	$006A	;1-byte RAM size
+000000r 2               BUFCNT	=	$006B	;1-byte buffer count (logical line size)
+000000r 2               BUFSTR	=	$006C	;2-byte buffer start pointer
+000000r 2               BITMSK	=	$006E	;1-byte bit mask for bit map operation
+000000r 2               SHFAMT	=	$006F	;1-byte shift amount for pixel justification
+000000r 2               ROWAC	=	$0070	;2-byte draw working row
+000000r 2               COLAC	=	$0072	;2-byte draw working column
+000000r 2               ENDPT	=	$0074	;2-byte end point
+000000r 2               DELTAR	=	$0076	;1-byte row difference
+000000r 2               DELTAC	=	$0077	;2-byte column difference
+000000r 2               KEYDEF	=	$0079	;2-byte key definition table addres:
+000000r 2               SWPFLG	=	$007B	;1-byte split screen swap flag (0 = not swapped)
+000000r 2               HOLDCH	=	$007C	;1-byte temporary character
+000000r 2               INSDAT	=	$007D	;1-byte temporary
+000000r 2               COUNTR	=	$007E	;2-byte draw iteration count
+000000r 2               
+000000r 2               ;	Reserved for Application and Floating Point Package
+000000r 2               
+000000r 2               ;	=	$0080	;128 bytes reserved for application and FPP
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Floating Point Package Page Zero Address Equates
+000000r 2               
+000000r 2               
+000000r 2               FR0	=	$00D4	;6-byte register 0
+000000r 2               FR0M	=	$00D5	;5-byte register 0 mantissa
+000000r 2               QTEMP	=	$00D9	;1-byte temporary
+000000r 2               
+000000r 2               FRE	=	$00DA	;6-byte (internal) register E
+000000r 2               
+000000r 2               FR1	=	$00E0	;6-byte register 1
+000000r 2               FR1M	=	$00E1	;5-byte register 1 mantissa
+000000r 2               
+000000r 2               FR2	=	$00E6	;6-byte (internal) register 2
+000000r 2               
+000000r 2               FRX	=	$00EC	;1-byte temporary
+000000r 2               
+000000r 2               EEXP	=	$00ED	;1-byte value of exponent
+000000r 2               
+000000r 2               FRSIGN	=	$00EE	;1-byte floating point sign
+000000r 2               NSIGN	=	$00EE	;1-byte sign of number
+000000r 2               
+000000r 2               PLYCNT	=	$00EF	;1-byte polynomial degree
+000000r 2               ESIGN	=	$00EF	;1-byte sign of exponent
+000000r 2               
+000000r 2               SGNFLG	=	$00F0	;1-byte sign flag
+000000r 2               FCHFLG	=	$00F0	;1-byte first character flag
+000000r 2               
+000000r 2               XFMFLG	=	$00F1	;1-byte transform flag
+000000r 2               DIGRT	=	$00F1	;1-byte number of digits after decimal point
+000000r 2               
+000000r 2               CIX	=	$00F2	;1-byte current input index
+000000r 2               INBUFF	=	$00F3	;2-byte line input buffer
+000000r 2               
+000000r 2               ZTEMP1	=	$00F5	;2-byte temporary
+000000r 2               ZTEMP4	=	$00F7	;2-byte temporary
+000000r 2               ZTEMP3	=	$00F9	;2-byte temporary
+000000r 2               
+000000r 2               FLPTR	=	$00FC	;2-byte floating point number pointer
+000000r 2               FPTR2	=	$00FE	;2-byte floating point number pointer
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page One (Stack) Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	=	$0100	;256-byte stack
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Two Address Equates
+000000r 2               
+000000r 2               
+000000r 2               INTABS	=	$0200	;42-byte interrupt handler table
+000000r 2               
+000000r 2               VDSLST	=	$0200	;2-byte display list NMI vector
+000000r 2               VPRCED	=	$0202	;2-byte serial I/O proceed line IRQ vector
+000000r 2               VINTER	=	$0204	;2-byte serial I/O interrupt line IRQ vector
+000000r 2               VBREAK	=	$0206	;2-byte BRK instruction IRQ vector
+000000r 2               VKEYBD	=	$0208	;2-byte keyboard IRQ vector
+000000r 2               VSERIN	=	$020A	;2-byte serial input ready IRQ vector
+000000r 2               VSEROR	=	$020C	;2-byte serial output ready IRQ vector
+000000r 2               VSEROC	=	$020E	;2-byte serial output complete IRQ vector
+000000r 2               VTIMR1	=	$0210	;2-byte POKEY timer 1 IRQ vector
+000000r 2               VTIMR2	=	$0212	;2-byte POKEY timer 2 IRQ vector
+000000r 2               VTIMR4	=	$0214	;2-byte POKEY timer 4 IRQ vector
+000000r 2               VIMIRQ	=	$0216	;2-byte immediate IRQ vector
+000000r 2               CDTMV1	=	$0218	;2-byte countdown timer 1 value
+000000r 2               CDTMV2	=	$021A	;2-byte countdown timer 2 value
+000000r 2               CDTMV3	=	$021C	;2-byte countdown timer 3 value
+000000r 2               CDTMV4	=	$021E	;2-byte countdown timer 4 value
+000000r 2               CDTMV5	=	$0220	;2-byte countdown timer 5 value
+000000r 2               VVBLKI	=	$0222	;2-byte immediate VBLANK NMI vector
+000000r 2               VVBLKD	=	$0224	;2-byte deferred VBLANK NMI vector
+000000r 2               CDTMA1	=	$0226	;2-byte countdown timer 1 vector
+000000r 2               CDTMA2	=	$0228	;2-byte countdown timer 2 vector
+000000r 2               
+000000r 2               CDTMF3	=	$022A	;1-byte countdown timer 3 flag (0 = expired)
+000000r 2               SRTIMR	=	$022B	;1-byte software key repeat timer
+000000r 2               CDTMF4	=	$022C	;1-byte countdown timer 4 flag (0 = expired)
+000000r 2               INTEMP	=	$022D	;1-byte temporary
+000000r 2               CDTMF5	=	$022E	;1-byte countdown timer 5 flag (0 = expired)
+000000r 2               SDMCTL	=	$022F	;1-byte DMACTL shadow
+000000r 2               SDLSTL	=	$0230	;1-byte DLISTL shadow
+000000r 2               SDLSTH	=	$0231	;1-byte DLISTH shadow
+000000r 2               SSKCTL	=	$0232	;1-byte SKCTL shadow
+000000r 2               LCOUNT	=	$0233	;1-byte relocating loader record le:
+000000r 2               LPENH	=	$0234	;1-byte light pen horizontal value
+000000r 2               LPENV	=	$0235	;1-byte light pen vertical value
+000000r 2               BRKKY	=	$0236	;2-byte BREAK key vector
+000000r 2               VPIRQ	=	$0238	;2-byte parallel device IRQ vector
+000000r 2               CDEVIC	=	$023A	;1-byte command frame device ID
+000000r 2               CCOMND	=	$023B	;1-byte command frame command
+000000r 2               CAUX1	=	$023C	;1-byte command auxiliary 1
+000000r 2               CAUX2	=	$023D	;1-byte command auxiliary 2
+000000r 2               
+000000r 2               TEMP	=	$023E	;1-byte temporary
+000000r 2               
+000000r 2               ;	ASSERT	low TEMP<>$FF	;may not be the last word on a page
+000000r 2               
+000000r 2               ERRFLG	=	$023F	;1-byte I/O error flag (0 = no error)
+000000r 2               
+000000r 2               ;	ASSERT	low ERRFLG<>$FF ;may not be the last word on a page
+000000r 2               
+000000r 2               DFLAGS	=	$0240	;1-byte disk flags from sector 1
+000000r 2               DBSECT	=	$0241	;1-byte disk boot sector count
+000000r 2               BOOTAD	=	$0242	;2-byte disk boot memory address
+000000r 2               COLDST	=	$0244	;1-byte coldstart flag (0 = complete)
+000000r 2               RECLEN	=	$0245	;1-byte relocating loader record le:
+000000r 2               DSKTIM	=	$0246	;1-byte disk format timeout
+000000r 2               PDVMSK	=	$0247	;1-byte parallel device selection mask
+000000r 2               SHPDVS	=	$0248	;1-byte PDVS (parallel device selec:
+000000r 2               PDIMSK	=	$0249	;1-byte parallel device IRQ selection mask
+000000r 2               RELADR	=	$024A	;2-byte relocating loader relative :
+000000r 2               PPTMPA	=	$024C	;1-byte parallel device handler tem:
+000000r 2               PPTMPX	=	$024D	;1-byte parallel device handler tem:
+000000r 2               
+000000r 2               ;	=	$024E	;6 bytes reserved for Atari
+000000r 2               
+000000r 2               ;	=	$0254	;23 bytes reserved for Atari
+000000r 2               
+000000r 2               CHSALT	=	$026B	;1-byte character set alternate
+000000r 2               VSFLAG	=	$026C	;1-byte fine vertical scroll count
+000000r 2               KEYDIS	=	$026D	;1-byte keyboard disable
+000000r 2               FINE	=	$026E	;1-byte fine scrolling mode
+000000r 2               GPRIOR	=	$026F	;1-byte PRIOR shadow
+000000r 2               
+000000r 2               PADDL0	=	$0270	;1-byte potentiometer 0
+000000r 2               PADDL1	=	$0271	;1-byte potentiometer 1
+000000r 2               PADDL2	=	$0272	;1-byte potentiometer 2
+000000r 2               PADDL3	=	$0273	;1-byte potentiometer 3
+000000r 2               PADDL4	=	$0274	;1-byte potentiometer 4
+000000r 2               PADDL5	=	$0275	;1-byte potentiometer 5
+000000r 2               PADDL6	=	$0276	;1-byte potentiometer 6
+000000r 2               PADDL7	=	$0277	;1-byte potentiometer 7
+000000r 2               
+000000r 2               STICK0	=	$0278	;1-byte joystick 0
+000000r 2               STICK1	=	$0279	;1-byte joystick 1
+000000r 2               STICK2	=	$027A	;1-byte joystick 2
+000000r 2               STICK3	=	$027B	;1-byte joystick 3
+000000r 2               
+000000r 2               PTRIG0	=	$027C	;1-byte paddle trigger 0
+000000r 2               PTRIG1	=	$027D	;1-byte paddle trigger 1
+000000r 2               PTRIG2	=	$027E	;1-byte paddle trigger 2
+000000r 2               PTRIG3	=	$027F	;1-byte paddle trigger 3
+000000r 2               PTRIG4	=	$0280	;1-byte paddle trigger 4
+000000r 2               PTRIG5	=	$0281	;1-byte paddle trigger 5
+000000r 2               PTRIG6	=	$0282	;1-byte paddle trigger 6
+000000r 2               PTRIG7	=	$0283	;1-byte paddle trigger 7
+000000r 2               
+000000r 2               STRIG0	=	$0284	;1-byte joystick trigger 0
+000000r 2               STRIG1	=	$0285	;1-byte joystick trigger 1
+000000r 2               STRIG2	=	$0286	;1-byte joystick trigger 2
+000000r 2               STRIG3	=	$0287	;1-byte joystick trigger 3
+000000r 2               
+000000r 2               HIBYTE	=	$0288	;1-byte relocating loader high byte:
+000000r 2               WMODE	=	$0289	;1-byte cassette WRITE mode ($80 = writing)
+000000r 2               BLIM	=	$028A	;1-byte cassette buffer limit
+000000r 2               IMASK	=	$028B	;1-byte (not used)
+000000r 2               JVECK	=	$028C	;2-byte jump vector or temporary
+000000r 2               NEWADR	=	$028E	;2-byte relocating address
+000000r 2               TXTROW	=	$0290	;1-byte split screen text cursor row
+000000r 2               TXTCOL	=	$0291	;2-byte split screen text cursor column
+000000r 2               TINDEX	=	$0293	;1-byte split scree text mode
+000000r 2               TXTMSC	=	$0294	;2-byte split screen memory scan counter
+000000r 2               TXTOLD	=	$0296	;6-byte OLDROW, OLDCOL, OLDCHR, OLDADR for text
+000000r 2               CRETRY	=	$029C	;1-byte number of command frame ret:
+000000r 2               HOLD3	=	$029D	;1-byte temporary
+000000r 2               SUBTMP	=	$029E	;1-byte temporary
+000000r 2               HOLD2	=	$029F	;1-byte (not used)
+000000r 2               DMASK	=	$02A0	;1-byte display (pixel location) mask
+000000r 2               TMPLBT	=	$02A1	;1-byte (not used)
+000000r 2               ESCFLG	=	$02A2	;1-byte escape flag ($80 = ESC detected)
+000000r 2               TABMAP	=	$02A3	;15-byte (120-bit) tab stop bit map
+000000r 2               LOGMAP	=	$02B2	;8-byte (32-bit) logical line bit map
+000000r 2               INVFLG	=	$02B6	;1-byte inverse video flag ($80 = inverse)
+000000r 2               FILFLG	=	$02B7	;1-byte right fill flag (0 = no fill)
+000000r 2               TMPROW	=	$02B8	;1-byte temporary row
+000000r 2               TMPCOL	=	$02B9	;2-byte temporary column
+000000r 2               SCRFLG	=	$02BB	;1-byte scroll occurence flag (0 = not occurred)
+000000r 2               HOLD4	=	$02BC	;1-byte temporary
+000000r 2               DRETRY	=	$02BD	;1-byte number of device retries
+000000r 2               SHFLOK	=	$02BE	;1-byte shift/control lock flags
+000000r 2               BOTSCR	=	$02BF	;1-byte screen bottom (24 = normal, 4 = split)
+000000r 2               
+000000r 2               PCOLR0	=	$02C0	;1-byte player-missle 0 color/luminance
+000000r 2               PCOLR1	=	$02C1	;1-byte player-missle 1 color/luminance
+000000r 2               PCOLR2	=	$02C2	;1-byte player-missle 2 color/luminance
+000000r 2               PCOLR3	=	$02C3	;1-byte player-missle 3 color/luminance
+000000r 2               
+000000r 2               COLOR0	=	$02C4	;1-byte playfield 0 color/luminance
+000000r 2               COLOR1	=	$02C5	;1-byte playfield 1 color/luminance
+000000r 2               COLOR2	=	$02C6	;1-byte playfield 2 color/luminance
+000000r 2               COLOR3	=	$02C7	;1-byte playfield 3 color/luminance
+000000r 2               
+000000r 2               COLOR4	=	$02C8	;1-byte background color/luminance
+000000r 2               
+000000r 2               PARMBL	=	$02C9	;6-byte relocating loader parameter:
+000000r 2               RUNADR	=	$02C9	;2-byte run address
+000000r 2               HIUSED	=	$02CB	;2-byte highest non-zero page addre:
+000000r 2               ZHIUSE	=	$02CD	;2-byte highest zero page address
+000000r 2               
+000000r 2               OLDPAR	=	$02CF	;6-byte relocating loader parameter:
+000000r 2               GBYTEA	=	$02CF	;2-byte GET-BYTE routine address
+000000r 2               LOADAD	=	$02D1	;2-byte non-zero page load address
+000000r 2               ZLOADA	=	$02D3	;2-byte zero page load address
+000000r 2               
+000000r 2               DSCTLN	=	$02D5	;2-byte disk sector length
+000000r 2               ACMISR	=	$02D7	;2-byte ACMI interrupt service rout:
+000000r 2               KRPDEL	=	$02D9	;1-byte auto-repeat delay
+000000r 2               KEYREP	=	$02DA	;1-byte auto-repeat rate
+000000r 2               NOCLIK	=	$02DB	;1-byte key click disable
+000000r 2               HELPFG	=	$02DC	;1-byte HELP key flag (0 = no HELP)
+000000r 2               DMASAV	=	$02DD	;1-byte SDMCTL save/restore
+000000r 2               PBPNT	=	$02DE	;1-byte printer buffer pointer
+000000r 2               PBUFSZ	=	$02DF	;1-byte printer buffer size
+000000r 2               
+000000r 2               ;	=	$02E0	;4 bytes reserved for DOS
+000000r 2               
+000000r 2               RAMSIZ	=	$02E4	;1-byte high RAM size
+000000r 2               MEMTOP	=	$02E5	;2-byte top of available user memory
+000000r 2               MEMLO	=	$02E7	;2-byte bottom of available user memory
+000000r 2               HNDLOD	=	$02E9	;1-byte user load flag (0 = no hand:
+000000r 2               DVSTAT	=	$02EA	;4-byte device status buffer
+000000r 2               CBAUDL	=	$02EE	;1-byte low cassette baud rate
+000000r 2               CBAUDH	=	$02EF	;1-byte high cassette baud rate
+000000r 2               CRSINH	=	$02F0	;1-byte cursor inhibit (0 = cursor on)
+000000r 2               KEYDEL	=	$02F1	;1-byte key debounce delay timer
+000000r 2               CH1	=	$02F2	;1-byte prior keyboard character
+000000r 2               CHACT	=	$02F3	;1-byte CHACTL shadow
+000000r 2               CHBAS	=	$02F4	;1-byte CHBASE shadow
+000000r 2               
+000000r 2               NEWROW	=	$02F5	;1-byte draw destination row
+000000r 2               NEWCOL	=	$02F6	;2-byte draw destination column
+000000r 2               ROWINC	=	$02F8	;1-byte draw row increment
+000000r 2               COLINC	=	$02F9	;1-byte	draw column increment
+000000r 2               
+000000r 2               CHAR	=	$02FA	;1-byte internal character
+000000r 2               ATACHR	=	$02FB	;1-byte ATASCII character or plot point
+000000r 2               CH	=	$02FC	;1-byte keyboard code (buffer)
+000000r 2               FILDAT	=	$02FD	;1-byte right fill data
+000000r 2               DSPFLG	=	$02FE	;1-byte control character display flag (0 = no)
+000000r 2               SSFLAG	=	$02FF	;1-byte start/stop flag (0 = not stopped)
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Three Address Equates
+000000r 2               
+000000r 2               
+000000r 2               DCB	=	$0300	;12-byte device control block
+000000r 2               DDEVIC	=	$0300	;1-byte unit 1 bus ID
+000000r 2               DUNIT	=	$0301	;1-byte unit number
+000000r 2               DCOMND	=	$0302	;1-byte bus command
+000000r 2               DSTATS	=	$0303	;1-byte command type/status return
+000000r 2               DBUFLO	=	$0304	;1-byte low data buffer address
+000000r 2               DBUFHI	=	$0305	;1-byte high data buffer address
+000000r 2               DTIMLO	=	$0306	;1-byte timeout (seconds)
+000000r 2               DUNUSE	=	$0307	;1-byte (not used)
+000000r 2               DBYTLO	=	$0308	;1-byte low number of bytes to transfer
+000000r 2               DBYTHI	=	$0309	;1-byte high number of bytes to transfer
+000000r 2               DAUX1	=	$030A	;1-byte first command auxiliary
+000000r 2               DAUX2	=	$030B	;1-byte second command auxiliary
+000000r 2               
+000000r 2               TIMER1	=	$030C	;2-byte initial baud rate timer value
+000000r 2               JMPERS	=	$030E	;1-byte jumper options
+000000r 2               CASFLG	=	$030F	;1-byte cassette I/O flag (0 = not cassette I/O)
+000000r 2               TIMER2	=	$0310	;2-byte final baud rate timer value
+000000r 2               TEMP1	=	$0312	;2-byte temporary
+000000r 2               TEMP2	=	$0313	;1-byte temporary
+000000r 2               PTIMOT	=	$0314	;1-byte printer timeout
+000000r 2               TEMP3	=	$0315	;1-byte temporary
+000000r 2               SAVIO	=	$0316	;1-byte saved serial data input indicator
+000000r 2               TIMFLG	=	$0317	;1-byte timeout flag (0 = timeout)
+000000r 2               STACKP	=	$0318	;1-byte SIO saved stack pointer
+000000r 2               TSTAT	=	$0319	;1-byte temporary status
+000000r 2               
+000000r 2               HATABS	=	$031A	;35-byte handler address table
+000000r 2               
+000000r 2               PUPBT1	=	$033D	;1-byte power-up validation byte 1
+000000r 2               PUPBT2	=	$033E	;1-byte power-up validation byte 2
+000000r 2               PUPBT3	=	$033F	;1-byte power-up validation byte 3
+000000r 2               
+000000r 2               IOCB	=	$0340	;128-byte I/O control blocks area
+000000r 2               ICHID	=	$0340	;1-byte handler ID ($FF = free)
+000000r 2               ICDNO	=	$0341	;1-byte device number
+000000r 2               ICCOM	=	$0342	;1-byte command code
+000000r 2               ICSTA	=	$0343	;1-byte status of last action
+000000r 2               ICBAL	=	$0344	;1-byte low buffer address
+000000r 2               ICBAH	=	$0345	;1-byte high buffer address
+000000r 2               ICPTL	=	$0346	;1-byte low PUT-BYTE routine address-1
+000000r 2               ICPTH	=	$0347	;1-byte high PUT-BYTE routine address-1
+000000r 2               ICBLL	=	$0348	;1-byte low buffer length
+000000r 2               ICBLH	=	$0349	;1-byte high buffer length
+000000r 2               ICAX1	=	$034A	;1-byte first auxiliary information
+000000r 2               ICAX2	=	$034B	;1-byte second auxiliary information
+000000r 2               ICSPR	=	$034C	;4-byte work area
+000000r 2               
+000000r 2               PRNBUF	=	$03C0	;40-byte printer buffer
+000000r 2               SUPERF	=	$03E8	;1-byte editor super function flag :
+000000r 2               CKEY	=	$03E9	;1-byte cassette boot r=est flag :
+000000r 2               CASSBT	=	$03EA	;1-byte cassette boot flag (0 = not:
+000000r 2               CARTCK	=	$03EB	;1-byte cartridge =ivalence checksum
+000000r 2               DERRF	=	$03EC	;1-byte screen OPEN error flag (0 = not)
+000000r 2               
+000000r 2               ;	Remainder of Page Three Not Cleared upon Reset
+000000r 2               
+000000r 2               ACMVAR	=	$03ED	;11 bytes reserved for ACMI
+000000r 2               BASICF	=	$03F8	;1-byte BASIC switch flag (0 = BASIC enabled)
+000000r 2               MINTLK	=	$03F9	;1-byte ACMI module interlock
+000000r 2               GINTLK	=	$03FA	;1-byte cartridge interlock
+000000r 2               CHLINK	=	$03FB	;2-byte loaded handler chain link
+000000r 2               CASBUF	=	$03FD	;3-byte first 3 bytes of cassette buffer
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Four Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	=	$0400	;128-byte remainder of cassette buffer
+000000r 2               
+000000r 2               ;	Reserved for Application
+000000r 2               
+000000r 2               	.IF PLATFORM<>1
+000000r 2               
+000000r 2               USAREA	=	$0480	;128 bytes reserved for application
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Five Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	Reserved for Application and Floating Point Package
+000000r 2               
+000000r 2               ;	=	$0500	;256 bytes reserved for application and FPP
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Floating Point Package Address Equates
+000000r 2               
+000000r 2               
+000000r 2               LBPR1	=	$057E	;1-byte LBUFF preamble
+000000r 2               LBPR2	=	$057F	;1-byte LBUFF preamble
+000000r 2               LBUFF	=	$0580	;128-byte line buffer
+000000r 2               
+000000r 2               PLYARG	=	$05E0	;6-byte floating point polynomial argument
+000000r 2               FPSCR	=	$05E6	;6-byte floating point temporary
+000000r 2               FPSCR1	=	$05EC	;6-byte floating point temporary
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Page Six Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	Reserved for Application
+000000r 2               
+000000r 2               ;	=	$0600	;256 bytes reserved for application
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	LNBUG Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	IF	LNBUG
+000000r 2               ;LNORG	=	$6000	;LNBUG origin
+000000r 2               ;LNIRQ	=	$6033	;LNBUG IRQ entry
+000000r 2               ;LNNMI	=	$8351	;LNBUG NMI vector
+000000r 2               ;	ENDIF	;LNBUG
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Cartridge Address Equates
+000000r 2               
+000000r 2               
+000000r 2               CARTCS	=	$BFFA	;2-byte cartridge coldstart address
+000000r 2               CART	=	$BFFC	;1-byte cartridge present indicator
+000000r 2               CARTFG	=	$BFFD	;1-byte cartridge flags
+000000r 2               CARTAD	=	$BFFE	;2-byte cartridge start vector
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	CTIA/GTIA Address Equates
+000000r 2               
+000000r 2               
+000000r 2               CTIA	=	$D000	;CTIA/GTIA area
+000000r 2               
+000000r 2               ;	Read/Write Addresses
+000000r 2               
+000000r 2               CONSOL	=	$D01F	;console switches and speaker control
+000000r 2               
+000000r 2               ;	Read Addresses
+000000r 2               
+000000r 2               M0PF	=	$D000	;missle 0 and playfield collision
+000000r 2               M1PF	=	$D001	;missle 1 and playfield collision
+000000r 2               M2PF	=	$D002	;missle 2 and playfield collision
+000000r 2               M3PF	=	$D003	;missle 3 and playfield collision
+000000r 2               
+000000r 2               P0PF	=	$D004	;player 0 and playfield collision
+000000r 2               P1PF	=	$D005	;player 1 and playfield collision
+000000r 2               P2PF	=	$D006	;player 2 and playfield collision
+000000r 2               P3PF	=	$D007	;player 3 and playfield collision
+000000r 2               
+000000r 2               M0PL	=	$D008	;missle 0 and player collision
+000000r 2               M1PL	=	$D009	;missle 1 and player collision
+000000r 2               M2PL	=	$D00A	;missle 2 and player collision
+000000r 2               M3PL	=	$D00B	;missle 3 and player collision
+000000r 2               
+000000r 2               P0PL	=	$D00C	;player 0 and player collision
+000000r 2               P1PL	=	$D00D	;player 1 and player collision
+000000r 2               P2PL	=	$D00E	;player 2 and player collision
+000000r 2               P3PL	=	$D00F	;player 3 and player collision
+000000r 2               
+000000r 2               TRIG0	=	$D010	;joystick trigger 0
+000000r 2               TRIG1	=	$D011	;joystick trigger 1
+000000r 2               
+000000r 2               TRIG2	=	$D012	;cartridge interlock
+000000r 2               TRIG3	=	$D013	;ACMI module interlock
+000000r 2               
+000000r 2               PAL	=	$D014	;PAL/NTSC indicator
+000000r 2               
+000000r 2               ;	Write Addresses
+000000r 2               
+000000r 2               HPOSP0	=	$D000	;player 0 horizontal position
+000000r 2               HPOSP1	=	$D001	;player 1 horizontal position
+000000r 2               HPOSP2	=	$D002	;player 2 horizontal position
+000000r 2               HPOSP3	=	$D003	;player 3 horizontal position
+000000r 2               
+000000r 2               HPOSM0	=	$D004	;missle 0 horizontal position
+000000r 2               HPOSM1	=	$D005	;missle 1 horizontal position
+000000r 2               HPOSM2	=	$D006	;missle 2 horizontal position
+000000r 2               HPOSM3	=	$D007	;missle 3 horizontal position
+000000r 2               
+000000r 2               SIZEP0	=	$D008	;player 0 size
+000000r 2               SIZEP1	=	$D009	;player 1 size
+000000r 2               SIZEP2	=	$D00A	;player 2 size
+000000r 2               SIZEP3	=	$D00B	;player 3 size
+000000r 2               
+000000r 2               SIZEM	=	$D00C	;missle sizes
+000000r 2               
+000000r 2               GRAFP0	=	$D00D	;player 0 graphics
+000000r 2               GRAFP1	=	$D00E	;player 1 graphics
+000000r 2               GRAFP2	=	$D00F	;player 2 graphics
+000000r 2               GRAFP3	=	$D010	;player 3 graphics
+000000r 2               
+000000r 2               GRAFM	=	$D011	;missle graphics
+000000r 2               
+000000r 2               COLPM0	=	$D012	;player-missle 0 color/luminance
+000000r 2               COLPM1	=	$D013	;player-missle 1 color/luminance
+000000r 2               COLPM2	=	$D014	;player-missle 2 color/luminance
+000000r 2               COLPM3	=	$D015	;player-missle 3 color/luminance
+000000r 2               
+000000r 2               COLPF0	=	$D016	;playfield 0 color/luminance
+000000r 2               COLPF1	=	$D017	;playfield 1 color/luminance
+000000r 2               COLPF2	=	$D018	;playfield 2 color/luminance
+000000r 2               COLPF3	=	$D019	;playfield 3 color/luminance
+000000r 2               
+000000r 2               COLBK	=	$D01A	;background color/luminance
+000000r 2               
+000000r 2               PRIOR	=	$D01B	;priority select
+000000r 2               VDELAY	=	$D01C	;vertical delay
+000000r 2               GRACTL	=	$D01D	;graphic control
+000000r 2               HITCLR	=	$D01E	;collision clear
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	PBI Address Equates
+000000r 2               
+000000r 2               
+000000r 2               PBI	=	$D100	;parallel bus interface area
+000000r 2               
+000000r 2               ;	Read Addresses
+000000r 2               
+000000r 2               PDVI	=	$D1FF	;parallel device IRQ status
+000000r 2               
+000000r 2               ;	Write Addresses
+000000r 2               
+000000r 2               PDVS	=	$D1FF	;parallel device select
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	POKEY Address Equates
+000000r 2               
+000000r 2               
+000000r 2               POKEY	=	$D200	;POKEY area
+000000r 2               
+000000r 2               ;	Read Addresses
+000000r 2               
+000000r 2               POT0	=	$D200	;potentiometer 0
+000000r 2               POT1	=	$D201	;potentiometer 1
+000000r 2               POT2	=	$D202	;potentiometer 2
+000000r 2               POT3	=	$D203	;potentiometer 3
+000000r 2               POT4	=	$D204	;potentiometer 4
+000000r 2               POT5	=	$D205	;potentiometer 5
+000000r 2               POT6	=	$D206	;potentiometer 6
+000000r 2               POT7	=	$D207	;potentiometer 7
+000000r 2               
+000000r 2               ALLPOT	=	$D208	;potentiometer port state
+000000r 2               KBCODE	=	$D209	;keyboard code
+000000r 2               RANDOM	=	$D20A	;random number generator
+000000r 2               SERIN	=	$D20D	;serial port input
+000000r 2               IRQST	=	$D20E	;IRQ interrupt status
+000000r 2               SKSTAT	=	$D20F	;serial port and keyboard status
+000000r 2               
+000000r 2               ;	Write Addresses
+000000r 2               
+000000r 2               AUDF1	=	$D200	;channel 1 audio fr=ency
+000000r 2               AUDC1	=	$D201	;channel 1 audio control
+000000r 2               
+000000r 2               AUDF2	=	$D202	;channel 2 audio fr=ency
+000000r 2               AUDC2	=	$D203	;channel 2 audio control
+000000r 2               
+000000r 2               AUDF3	=	$D204	;channel 3 audio fr=ency
+000000r 2               AUDC3	=	$D205	;channel 3 audio control
+000000r 2               
+000000r 2               AUDF4	=	$D206	;channel 4 audio fr=ency
+000000r 2               AUDC4	=	$D207	;channel 4 audio control
+000000r 2               
+000000r 2               AUDCTL	=	$D208	;audio control
+000000r 2               STIMER	=	$D209	;start timers
+000000r 2               SKRES	=	$D20A	;reset SKSTAT status
+000000r 2               POTGO	=	$D20B	;start potentiometer scan s=ence
+000000r 2               SEROUT	=	$D20D	;serial port output
+000000r 2               IRQEN	=	$D20E	;IRQ interrupt enable
+000000r 2               SKCTL	=	$D20F	;serial port and keyboard control
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	PIA Address Equates
+000000r 2               
+000000r 2               
+000000r 2               PIA	=	$D300	;PIA area
+000000r 2               
+000000r 2               ;	Read/Write Addresses
+000000r 2               
+000000r 2               PORTA	=	$D300	;port A direction register or jacks 0 and 1
+000000r 2               PORTB	=	$D301	;port B direction register or memory control
+000000r 2               
+000000r 2               PACTL	=	$D302	;port A control
+000000r 2               PBCTL	=	$D303	;port B control
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	ANTIC Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ANTIC	=	$D400	;ANTIC area
+000000r 2               
+000000r 2               ;	Read Addresses
+000000r 2               
+000000r 2               VCOUNT	=	$D40B	;vertical line counter
+000000r 2               PENH	=	$D40C	;light pen horizontal position
+000000r 2               PENV	=	$D40D	;light pen vertical position
+000000r 2               NMIST	=	$D40F	;NMI interrupt status
+000000r 2               
+000000r 2               ;	Write Addresses
+000000r 2               
+000000r 2               DMACTL	=	$D400	;DMA control
+000000r 2               CHACTL	=	$D401	;character control
+000000r 2               DLISTL	=	$D402	;low display list address
+000000r 2               DLISTH	=	$D403	;high disply list address
+000000r 2               HSCROL	=	$D404	;horizontal scroll
+000000r 2               VSCROL	=	$D405	;vertical scroll
+000000r 2               PMBASE	=	$D407	;player-missle base address
+000000r 2               CHBASE	=	$D409	;character base address
+000000r 2               WSYNC	=	$D40A	;wait for HBLANK synchronization
+000000r 2               NMIEN	=	$D40E	;NMI enable
+000000r 2               NMIRES	=	$D40F	;NMI interrupt status reset
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	PBI RAM Address Equates
+000000r 2               
+000000r 2               
+000000r 2               PBIRAM	=	$D600	;parallel bus interface RAM area
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	ACMI Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ;	IF	ACMI
+000000r 2               ;	ENDIF	;ACMI
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Floating Point Package Address Equates
+000000r 2               
+000000r 2               
+000000r 2               AFP	=	$D800	;convert ASCII to floating point
+000000r 2               FASC	=	$D8E6	;convert floating point to ASCII
+000000r 2               IFP	=	$D9AA	;convert integer to floating point
+000000r 2               FPI	=	$D9D2	;convert floating point to integer
+000000r 2               ZFR0	=	$DA44	;zero FR0
+000000r 2               ZF1	=	$DA46	;zero floating point number
+000000r 2               FSUB	=	$DA60	;subtract floating point numbers
+000000r 2               FADD	=	$DA66	;add floating point numbers
+000000r 2               FMUL	=	$DADB	;multiply floating point numbers
+000000r 2               FDIV	=	$DB28	;divide floating point numbers
+000000r 2               PLYEVL	=	$DD40	;evaluate floating point polynomial
+000000r 2               FLD0R	=	$DD89	;load floating point number
+000000r 2               FLD0P	=	$DD8D	;load floating point number
+000000r 2               FLD1R	=	$DD98	;load floating point number
+000000r 2               FLD1P	=	$DD9C	;load floating point number
+000000r 2               FST0R	=	$DDA7	;store floating point number
+000000r 2               FST0P	=	$DDAB	;store floating point number
+000000r 2               FMOVE	=	$DDB6	;move floating point number
+000000r 2               LOG	=	$DECD	;calculate floating point logarithm
+000000r 2               LOG10	=	$DED1	;calculate floating point base 10 logarithm
+000000r 2               EXP	=	$DDC0	;calculate floating point exponentiation
+000000r 2               EXP10	=	$DDCC	;calculate floating point base 10 exponentiation
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Parallel Device Address Equates
+000000r 2               
+000000r 2               
+000000r 2               PDID1	=	$D803	;parallel device ID 1
+000000r 2               PDIOV	=	$D805	;parallel device I/O vector
+000000r 2               PDIRQV	=	$D808	;parallel device IRQ vector
+000000r 2               PDID2	=	$D80B	;parallel device ID 2
+000000r 2               PDVV	=	$D80D	;parallel device vector table
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Device Handler Vector Table Address Equates
+000000r 2               
+000000r 2               
+000000r 2               EDITRV	=	$E400	;editor handler vector table
+000000r 2               SCRENV	=	$E410	;screen handler vector table
+000000r 2               KEYBDV	=	$E420	;keyboard handler vector table
+000000r 2               PRINTV	=	$E430	;printer handler vector table
+000000r 2               CASETV	=	$E440	;cassette handler vector table
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Jump Vector Address Equates
+000000r 2               
+000000r 2               
+000000r 2               DINITV	=	$E450	;vector to initialize DIO
+000000r 2               DSKINV	=	$E453	;vector to DIO
+000000r 2               CIOV	=	$E456	;vector to CIO
+000000r 2               SIOV	=	$E459	;vector to SIO
+000000r 2               SETVBV	=	$E45C	;vector to set VBLANK parameters
+000000r 2               SYSVBV	=	$E45F	;vector to process immediate VBLANK NMI
+000000r 2               XITVBV	=	$E462	;vector to process deferred VBLANK NMI
+000000r 2               SIOINV	=	$E465	;vector to initialize SIO
+000000r 2               SENDEV	=	$E468	;vector to enable SEND
+000000r 2               INTINV	=	$E46B	;vector to initialize interrupt handler
+000000r 2               CIOINV	=	$E46E	;vector to initialize CIO
+000000r 2               BLKBDV	=	$E471	;vector to power-up display (formerly memo pad)
+000000r 2               WARMSV	=	$E474	;vector to warmstart
+000000r 2               COLDSV	=	$E477	;vector to coldstart
+000000r 2               RBLOKV	=	$E47A	;vector to read cassette block
+000000r 2               CSOPIV	=	$E47D	;vector to open cassette for input
+000000r 2               PUPDIV	=	$E480	;vector to power-up display
+000000r 2               SLFTSV	=	$E483	;vector to self-test
+000000r 2               PHENTV	=	$E486	;vector to enter peripheral handler
+000000r 2               PHUNLV	=	$E489	;vector to unlink peripheral handler
+000000r 2               PHINIV	=	$E48C	;vector to initialize peripheral handler
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Generic Parallel Device Handler Vector Table Address Equates
+000000r 2               
+000000r 2               
+000000r 2               GPDVV	=	$E48F	;generic parallel device handler vector table
+000000r 2               ;	SUBTTL	'Miscellaneous Address Equates'
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Self-test Page Zero Address Equates
+000000r 2               
+000000r 2               
+000000r 2               STTIME	=	$0080	;2-byte main screen timeout timer
+000000r 2               STAUT	=	$0082	;1-byte auto-mode flag
+000000r 2               STJMP	=	$0083	;3-byte ANTIC jump instruction
+000000r 2               STSEL	=	$0086	;1-byte selection
+000000r 2               STPASS	=	$0087	;1-byte pass
+000000r 2               STSPP	=	$0088	;1-byte SELECT previously pressed flag
+000000r 2               ;	=	$0089	;1-byte (not used)
+000000r 2               STKST	=	$008A	;1-byte keyboard self-test flag (0 = not)
+000000r 2               STCHK	=	$008B	;2-byte checksum
+000000r 2               STSMM	=	$008D	;1-byte screen memory mask
+000000r 2               STSMP	=	$008E	;1-byte screen memory pointer
+000000r 2               ST1K	=	$008F	;1-byte current 1K of memory to test
+000000r 2               STPAG	=	$0090	;2-byte current page to test
+000000r 2               STPC	=	$0092	;1-byte page count
+000000r 2               STMVAL	=	$0093	;1-byte correct value for memory test
+000000r 2               STSKP	=	$0094	;1-byte simulated keypress index
+000000r 2               STTMP1	=	$0095	;2-byte temporary
+000000r 2               STVOC	=	$0097	;1-byte current voice indicator
+000000r 2               STNOT	=	$0098	;1-byte current note counter
+000000r 2               STCDI	=	$0099	;1-byte cleft display pointer
+000000r 2               STCDA	=	$009A	;1-byte cleft data pointer
+000000r 2               STTMP2	=	$009B	;2-byte temporary
+000000r 2               STTMP3	=	$009D	;1-byte temporary
+000000r 2               STADR1	=	$009E	;2-byte temporary address
+000000r 2               STADR2	=	$00A0	;2-byte temporary address
+000000r 2               STBL	=	$00A2	;1-byte blink counter
+000000r 2               STTMP4	=	$00A3	;1-byte temporary
+000000r 2               STLM	=	$00A4	;1-byte LED mask
+000000r 2               STTMP5	=	$00A5	;1-byte temporary
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	Self-test Address Equates
+000000r 2               
+000000r 2               
+000000r 2               ST3000	=	$3000	;screen memory
+000000r 2               ST3002	=	$3002	;cleft display
+000000r 2               ST3004	=	$3004	;"VOICE #" text display
+000000r 2               ST300B	=	$300B	;voice number display
+000000r 2               ST301C	=	$301C	;START key display
+000000r 2               ST301E	=	$301E	;SELECT key display
+000000r 2               ST3020	=	$3020	;OPTION key display, first 8K ROM display
+000000r 2               ST3021	=	$3021	;keyboard character display
+000000r 2               ST3022	=	$3022	;keyboard text display
+000000r 2               ST3024	=	$3024	;second 8K ROM display
+000000r 2               ST3028	=	$3028	;"RAM" text display
+000000r 2               ST3038	=	$3038	;RAM display
+000000r 2               ST303C	=	$303C	;fifth note display
+000000r 2               ST304C	=	$304C	;"B S" text display
+000000r 2               ST3052	=	$3052	;tab key display
+000000r 2               ST3062	=	$3062	;cleft display
+000000r 2               ST306D	=	$306D	;return key display
+000000r 2               ST3072	=	$3072	;control key display
+000000r 2               ST3092	=	$3092	;"SH" text display
+000000r 2               ST309E	=	$309E	;sixth note display
+000000r 2               ST30AB	=	$30AB	;"SH" text display
+000000r 2               ST30B7	=	$30B7	;"S P A C E   B A R" text display
+000000r 2               ST30C1	=	$30C1	;cleft display
+000000r 2               ST30C2	=	$30C2	;cleft display
+000000r 2               ST30C7	=	$30C7	;third note display
+000000r 2               ST30CA	=	$30CA	;fourth note display
+000000r 2               ST30F8	=	$30F8	;third note display
+000000r 2               ST3100	=	$3100	;screen memory
+000000r 2               ST3121	=	$3121	;cleft display
+000000r 2               ST3122	=	$3122	;cleft display
+000000r 2               ST313C	=	$313C	;fifth note display
+000000r 2               ST3150	=	$3150	;first line of staff display
+000000r 2               ST3154	=	$3154	;first note display
+000000r 2               ST3181	=	$3181	;cleft display
+000000r 2               ST3182	=	$3182	;cleft display
+000000r 2               ST3186	=	$3186	;second note display
+000000r 2               ST318C	=	$318C	;fifth note display
+000000r 2               ST31B0	=	$31B0	;second line of staff display
+000000r 2               ST31C2	=	$31C2	;cleft display
+000000r 2               ST31CA	=	$31CA	;fourth note display
+000000r 2               ST31EE	=	$31EE	;sixth note display
+000000r 2               ST31F1	=	$31F1	;cleft display
+000000r 2               ST3210	=	$3210	;third line of staff display
+000000r 2               ST321A	=	$321A	;fourth note display
+000000r 2               ST3248	=	$3248	;third note display
+000000r 2               ST3270	=	$3270	;fourth line of staff display
+000000r 2               ST32D0	=	$32D0	;fifth line of staff display
+000000r 2               
+000000r 2               	.ENDIF
+000000r 2               
+000000r 2               ;	SUBTTL	'Macro Definitions'
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	FIX - Fix Address
+000000r 2               ;*
+000000r 2               ;*	FIX sets the origin counter to the value specified as an
+000000r 2               ;*	argument.  If the current origin counter is less than the
+000000r 2               ;*	argument, FIX fills the intervening bytes with zero and
+000000r 2               ;*	issues a message to document the location and number of
+000000r 2               ;*	bytes that are zero filled.
+000000r 2               ;*
+000000r 2               ;*	ENTRY	FIX	address
+000000r 2               ;*
+000000r 2               ;*
+000000r 2               ;*	EXIT
+000000r 2               ;*		Origin counter set to specified address.
+000000r 2               ;*		Message issued if zero fill r=ired.
+000000r 2               ;*
+000000r 2               ;*	CHANGES
+000000r 2               ;*		-none-
+000000r 2               ;*
+000000r 2               ;*	CALLS
+000000r 2               ;*		-none-
+000000r 2               ;*
+000000r 2               ;*	NOTES
+000000r 2               ;*		Due to ECHO limitiation of 255 iterations, FIX is
+000000r 2               ;*		recursive.
+000000r 2               ;*		If the current origin counter value is beyond the
+000000r 2               ;*		argument, FIX generates an error.
+000000r 2               ;*
+000000r 2               ;*	MODS
+000000r 2               ;*		R. K. Nordin	11/01/83
+000000r 2               
+000000r 2               
+000000r 2               
+000000r 2               .macro	FIX	address
+000000r 2               	.if	* > address
+000000r 2               	.error	.sprintf("$%04x precedes current origin counter of $%04x", address, *)
+000000r 2               	.elseif * < address
+000000r 2               	.out	.sprintf("$%04x free bytes from $%04x to $%04x", address-*, *, address-1)
+000000r 2               	.res	address-*, $00
+000000r 2               	.endif
+000000r 2               .endmacro
+000000r 2               ;	SUBTTL	'First 8K ROM Identification and Checksum'
+000000r 2               ;	SPACE	4,10
+000000r 2               ;	ORG	$C000
+000000r 2               ;	SPACE	4,10
+000000r 2               ;**	First 8K ROM Identification and Checksum
+000000r 2               
+000000r 2               
+000000r 2               ;	DW	$0000				;reserved for checksum
+000000r 2               ;	DB	IDDAY,IDMON,IDYEAR		;date (day, month, year)
+000000r 2               ;	DB	$00				;not used
+000000r 2               ;	DB	IDPN1,IDPN2,IDPN3,IDPN4,IDPN5	;part number
+000000r 2               ;	DB	IDREV				;revision number
+000000r 2               
+000000r 2               
+000000r 1               		.include "fat16.inc"
+000000r 2               ;
+000000r 2               ; PLATFORM = 0 : Homebrew FPGA
+000000r 2               ; PLATFORM = 1 : Homebrew Hardware
+000000r 2               ; PLATFORM = 2 : Atari XL/XE
+000000r 2               ; PLATFORM = 3 : my65816 FPGA
+000000r 2               ; PLATFORM = 4 : Atari XL/XE Fat12
+000000r 2               ;
+000000r 2               ;
+000000r 2               ; FAT-16 defines
+000000r 2               ;
+000000r 2               DRVCHAR		= 'D'
+000000r 2               
+000000r 2               	.IF PLATFORM <= 1
+000000r 2               FATPTRS		= $0006
+000000r 2               FATPTRD		= $0008
+000000r 2               	.ELSE
+000000r 2               FATPTRS		= $0000
+000000r 2               FATPTRD		= $0002
+000000r 2               SECTOR		= FMSZPG
+000000r 2               	.ENDIF
+000000r 2               
+000000r 2               ;--------------------------------------------------------------
+000000r 2               ; Memory Setup
+000000r 2               ;--------------------------------------------------------------
+000000r 2               	.IF PLATFORM <= 1
+000000r 2               VBASE		= $400
+000000r 2               	.ENDIF
+000000r 2               
+000000r 2               ;	.IF PLATFORM = 3
+000000r 2               ;VBASE		= $400
+000000r 2               ;	.ENDIF
+000000r 2               
+000000r 2               	.IF PLATFORM = 2 || PLATFORM = 4
+000000r 2               VBASE		= $700
+000000r 2               FATCODE		= VBASE+$600
+000000r 2               DUPCODE		= $1a40
+000000r 2               
+000000r 2               JSTARTUP	= FATCODE
+000000r 2               JPRINT		= FATCODE+3
+000000r 2               JPUTHEX		= FATCODE+6
+000000r 2               JPRINTSTR	= FATCODE+9
+000000r 2               JINITFAT	= FATCODE+12
+000000r 2               	.ENDIF
+000000r 2               
+000000r 2               V		= VBASE
+000000r 2               BUFFER		= VBASE+$200
+000000r 2               FATBUF		= VBASE+$400
+000000r 2               
+000000r 2               CRENAME		= 32
+000000r 2               CDELETE		= 33
+000000r 2               CCREDIR		= 34
+000000r 2               CFSTAT		= 40
+000000r 2               CCHADIR		= 41
+000000r 2               
+000000r 2               DEL		= $E5
+000000r 2               EOF		= $88
+000000r 2               
+000000r 2               SECCLUS		= V+0		;1
+000000r 2               RESSEC		= V+1		;2
+000000r 2               NUMFATS		= V+3		;1
+000000r 2               NUMDIR		= V+4		;2
+000000r 2               NUMSECS		= V+6		;2
+000000r 2               MEDIA		= V+8		;1
+000000r 2               SECSFAT		= V+9		;2
+000000r 2               FCBCODE		= V+11 		;1
+000000r 2               
+000000r 2               dummy		= V+12		;4
+000000r 2               FATBASE		= V+16		;4
+000000r 2               DIRBASE		= V+20		;4
+000000r 2               DATBASE		= V+24		;4
+000000r 2               LASTSEC		= V+28		;4
+000000r 2               LASTFAT		= V+32		;4
+000000r 2               BYTCLUS		= V+36 		;4
+000000r 2               
+000000r 2               BIN		= V+40 		;4
+000000r 2               BCD		= V+44 		;5
+000000r 2               DECIMAL		= V+49 		;10
+000000r 2               
+000000r 2               NEWCLUS		= V+59		;2
+000000r 2               DDIRTY		= V+61 		;1
+000000r 2               FDIRTY		= V+62 		;1
+000000r 2               BUFADRL		= V+63 		;1
+000000r 2               BUFADRH		= V+64 		;1
+000000r 2               
+000000r 2               DIRCLUS		= V+65		;2
+000000r 2               DIRRENA		= V+67 		;11
+000000r 2               
+000000r 2               NODISPL		= V+78 		;1
+000000r 2               WILD		= V+79 		;1
+000000r 2               DIRLINE		= V+80 		;13
+000000r 2               DIRLENG		= V+93 		;10
+000000r 2               DIREOF		= V+103 	;1
+000000r 2               SAVEY		= V+104		;1
+000000r 2               VALIDS		= V+105		;1-byte number of specials chars to check for
+000000r 2               HILF		= V+106		;1-byte aux usage
+000000r 2               ASTART		= V+107		;2-byte file load start vector
+000000r 2               AEND		= V+109		;2-byte file load end vector
+000000r 2               CNT		= V+111		;1-byte adress enter counter DUP
+000000r 2               FHEADER		= V+112		;2-byte save file header ($FF)
+000000r 2               FSTART		= V+114		;2-byte file load start vector save
+000000r 2               FEND		= V+116		;2-byte file load end vector save
+000000r 2               FSTARTS		= V+118		;2-byte file load start vector save
+000000r 2               FENDS		= V+120		;2-byte file load end vector save
+000000r 2               FDIFF		= V+122		;2-byte "into" difference save
+000000r 2               JMPIND		= V+124		;1-byte holding $4C for JMP
+000000r 2               JMPPTR		= V+125		;2-byte jmp address
+000000r 2               
+000000r 2               F		= V+127
+000000r 2               
+000000r 2               FIOCBNR		= F		;1-byte FCB is assigned to this IOCB
+000000r 2               FFCBOFF		= F+1		;1-byte Offset of this FCB from FCB0
+000000r 2               FSTRTCL		= F+2		;2-byte Start cluster of file
+000000r 2               FILELEN		= F+4		;4-byte length of file
+000000r 2               FWBURST		= F+8		;1-byte write burst 0=OFF, other=ON
+000000r 2               FBURST		= F+9		;1-byte flag indicating burst read ($FF = slow)
+000000r 2               FRPOS		= F+10		;4-byte bytes already read
+000000r 2               FVAR32		= F+14		;4-byte 32-bit general var
+000000r 2               FCURCLUS	= F+18		;4-byte current cluster
+000000r 2               FCURSEC		= F+22		;1-byte current sector
+000000r 2               FCURPTR		= F+23 		;2-byte current pointer into sector buffer
+000000r 2               FSECTOR		= F+25 		;4-byte last sector read
+000000r 2               
+000000r 2               DIRTEXT		= F+29		;11-byte directory text 8 + 3
+000000r 2               DIRPTR		= F+40		;2-byte pointer into directory sector
+000000r 2               DIRSEC		= F+42		;4-byte directory sector
+000000r 2               DIRFILE		= F+46		;1-byte dir or file to search for
+000000r 2               FBLKEND		= F+46
+000000r 2               
+000000r 2               FCB0		= V+256
+000000r 2               FCB1		= FCB0+64
+000000r 2               FCB2		= FCB1+64
+000000r 2               FCB3		= FCB2+64
+000000r 2               
+000000r 2               DNAME		= 0
+000000r 2               DEXT		= 8
+000000r 2               DATTRIB		= 11
+000000r 2               DCLUS		= $1A
+000000r 2               DLEN		= $1C
+000000r 2               PART1		= $1C6
+000000r 2               
+000000r 1               
+000000r 1               EPB	=	$E406		;putbyte
+000000r 1               
+000000r 1               		.ORG FATCODE
+000D00  1               
+000D00  1  4C 0F 0D     		JMP STARTUP	;0
+000D03  1  4C D2 19     		JMP PRINT	;3
+000D06  1  4C AA 19     		JMP PUTHEX	;6
+000D09  1  4C F7 19     		JMP PRINTSTR	;9
+000D0C  1  4C F4 15     		JMP INITFAT
+000D0F  1               	.ENDIF
+000D0F  1               
+000D0F  1               ;-------------------------------------------------------------------------------
+000D0F  1               ; set DOSINI to reset-proof DOS-Initialisation
+000D0F  1               ; set DOSVEC to DUP-code
+000D0F  1               ; register D: handler
+000D0F  1               ; set MEMLO for Basic
+000D0F  1               ;-------------------------------------------------------------------------------
+000D0F  1               STARTUP:
+000D0F  1               	.IF PLATFORM = 2 || PLATFORM = 4
+000D0F  1  A9 1F        		LDA #<INIT
+000D11  1  85 0C        		STA DOSINI
+000D13  1  A9 0D        		LDA #>INIT
+000D15  1  85 0D        		STA DOSINI+1
+000D17  1               
+000D17  1  A9 40        		LDA #<DUPCODE
+000D19  1  85 0A        		STA DOSVEC
+000D1B  1  A9 1A        		LDA #>DUPCODE
+000D1D  1  85 0B        		STA DOSVEC+1
+000D1F  1               
+000D1F  1               ;		LDA #25		; ATMAS-II patches
+000D1F  1               ;		STA $329F
+000D1F  1               ;		STA $32BF
+000D1F  1               ;		LDA #'B'
+000D1F  1               ;		STA $2A11
+000D1F  1               
+000D1F  1  A0 35        INIT:		LDY #<HANDTAB
+000D21  1  A9 0D        		LDA #>HANDTAB
+000D23  1  A2 44        		LDX #DRVCHAR
+000D25  1  20 86 E4     		JSR PHENTV				;init D: Device (not available on ATARI 400/800)
+000D28  1               
+000D28  1  A9 90        		LDA #<$1F90
+000D2A  1  8D E7 02     		STA MEMLO
+000D2D  1  A9 1F        		LDA #>$1F90
+000D2F  1  8D E8 02     		STA MEMLO+1
+000D32  1               
+000D32  1               	.ELSE
+000D32  1               ;		ldx #0
+000D32  1               ;HAFIND:		lda HATABS,x
+000D32  1               ;		beq HAFOUND
+000D32  1               ;		cmp #DRVCHAR
+000D32  1               ;		beq HAFOUND
+000D32  1               ;		inx
+000D32  1               ;		inx
+000D32  1               ;		inx
+000D32  1               ;		cpx #MAXDEV
+000D32  1               ;		bcc HAFIND
+000D32  1               ;		rts
+000D32  1               ;HAFOUND:	lda #DRVCHAR
+000D32  1               ;		sta HATABS,x
+000D32  1               ;		lda #<HANDTAB
+000D32  1               ;		sta HATABS+1,x
+000D32  1               ;		lda #>HANDTAB
+000D32  1               ;		sta HATABS+2,x
+000D32  1               	.ENDIF
+000D32  1  4C F4 15     		JMP INITFAT
+000D35  1               
+000D35  1               ;-------------------------------------------------------------------------------
+000D35  1               ; D: Handler-Table
+000D35  1               ; Open, Close, Get Put, Status, Special, Init
+000D35  1               ;-------------------------------------------------------------------------------
+000D35  1  BB 0E        HANDTAB:	.word OPENCHA-1		; open channel
+000D37  1  05 10        		.word CLOSECHA-1	; close ...
+000D39  1  D2 10        		.word GETCHA-1		; get channel
+000D3B  1  41 10        		.word PUTCHA-1		; put channel
+000D3D  1  9F 11        		.word STATUSCHA-1	; status of channel
+000D3F  1  A2 11        		.word SPECIAL-1
+000D41  1  60           		rts
+000D42  1               
+000D42  1               ;-------------------------------------------------------------------------------
+000D42  1               ; 		DIRFILE	0=ALL, 1=FILES, 2=FREE DIR,
+000D42  1               ;			3=DIR
+000D42  1               ;-------------------------------------------------------------------------------
+000D42  1  8D AD 07     DIRSTART:	STA DIRFILE
+000D45  1  AD 41 07     		LDA DIRCLUS
+000D48  1  8D 81 07     		STA FSTRTCL
+000D4B  1  AD 42 07     		LDA DIRCLUS+1
+000D4E  1  8D 82 07     		STA FSTRTCL+1
+000D51  1  60           		RTS
+000D52  1               
+000D52  1               ;-------------------------------------------------------------------------------
+000D52  1               ; Check if second or third character is ":"
+000D52  1               ; return Err165 (Bad file name / file name error) if not
+000D52  1               ;-------------------------------------------------------------------------------
+000D52  1  A0 01        CHECKHAN:	LDY #1
+000D54  1  A9 3A        		LDA #':'
+000D56  1  D1 24        		cmp_icbalz_y
+000D58  1  F0 0A        		BEQ CHECKHA1
+000D5A  1  C8           		INY
+000D5B  1  D1 24        		cmp_icbalz_y
+000D5D  1  F0 05        		BEQ CHECKHA1
+000D5F  1  20 A9 0D     ERR165:		JSR CLOSEFCB
+000D62  1  A0 A5        		LDY #165
+000D64  1  60           CHECKHA1:	RTS
+000D65  1               
+000D65  1               ;-------------------------------------------------------------------------------
+000D65  1               ; Traverse directory and check if filename matches
+000D65  1               ;-------------------------------------------------------------------------------
+000D65  1               GETFILE:
+000D65  1  20 42 0D     		jsr DIRSTART				;initialise DIRFILE, FSTRTCL
+000D68  1  20 52 0D     		jsr CHECKHAN
+000D6B  1  30 21        		bmi FINDFILEND
+000D6D  1               
+000D6D  1  C8           		iny					;Y = 2 or 3 from CHECKHAN
+000D6E  1  20 80 0F     		jsr STR2RAW				;convert to 11 chars including * to ?
+000D71  1  20 61 13     		jsr OPENDIR				;position to first directory entry
+000D74  1               
+000D74  1  A0 0A        FINDFIL1:	ldy #10
+000D76  1  B9 9C 07     FINDFIL3:	lda DIRTEXT,Y
+000D79  1  C9 3F        		cmp #'?'				;matches any character
+000D7B  1  F0 0C        		beq FINDFIL2
+000D7D  1  D1 00        		cmp (FATPTRS),Y				;matches character in directory?
+000D7F  1  F0 08        		beq FINDFIL2
+000D81  1               
+000D81  1  20 5C 11     NEXTFILE:	jsr NEXTDIR				;if not, get next directory entry
+000D84  1  90 EE        		bcc FINDFIL1				;check again
+000D86  1  A0 AA        		ldy #170				;no further entry, return EOF
+000D88  1  60           		rts
+000D89  1               
+000D89  1  88           FINDFIL2:	dey
+000D8A  1  10 EA        		bpl FINDFIL3
+000D8C  1  A0 01        		ldy #1
+000D8E  1  60           FINDFILEND:	rts
+000D8F  1               
+000D8F  1               ;-------------------------------------------------------------------------------
+000D8F  1               ;GET FCB Structure 0-3
+000D8F  1               ;Input 	FCBNO in A
+000D8F  1               ;Return FCB-offset in X
+000D8F  1               ;-------------------------------------------------------------------------------
+000D8F  1  8D 0B 07     GETFCB:		STA FCBCODE
+000D92  1  A2 00        		LDX #0
+000D94  1  AD 0B 07     GETFCB0:	LDA FCBCODE
+000D97  1  DD 00 08     		CMP FCB0,X
+000D9A  1  F0 0A        		BEQ GETFCB9
+000D9C  1  8A           		TXA
+000D9D  1  18           		CLC
+000D9E  1  69 40        		ADC #64
+000DA0  1  AA           		TAX
+000DA1  1  D0 F1        		BNE GETFCB0
+000DA3  1  A0 A1        		LDY #161		;TOO MANY
+000DA5  1  60           		RTS
+000DA6  1  A0 01        GETFCB9:	LDY #1
+000DA8  1  60           		RTS			;OPEN FILES
+000DA9  1               
+000DA9  1               ;-------------------------------------------------------------------------------
+000DA9  1               ; mark current FCB as unassigned
+000DA9  1               ;-------------------------------------------------------------------------------
+000DA9  1               CLOSEFCB:
+000DA9  1  AE 80 07     		LDX FFCBOFF				;get OFFSET of current FCB
+000DAC  1  A9 FF        		LDA #$FF				;switch off copy and original FCB
+000DAE  1  8D 7F 07     		STA FIOCBNR
+000DB1  1  9D 00 08     		STA FCB0,X
+000DB4  1  60           		RTS
+000DB5  1               
+000DB5  1               ;-------------------------------------------------------------------------------
+000DB5  1               ; swap-out and swap-in from FCB table to current FCB
+000DB5  1               ;-------------------------------------------------------------------------------
+000DB5  1  AD 7F 07     SETFCB:		LDA FIOCBNR				;optimisation: current FCB
+000DB8  1  C5 2E        		CMP ICIDNO				;already active?
+000DBA  1  F0 42        		BEQ SETFCB9				;yes, do nothing
+000DBC  1               
+000DBC  1  C9 FF        SWAPFCB:	CMP #$FF				;current FCB unassigned?
+000DBE  1  F0 25        		BEQ SWAPIN				;yes, just swapin FCB
+000DC0  1               
+000DC0  1  A2 03        SEC2FSEC:	LDX #3					;save SECTOR
+000DC2  1  B5 43        SEC2FSE1:	LDA SECTOR,X
+000DC4  1  9D 98 07     		STA FSECTOR,X
+000DC7  1  CA           		DEX
+000DC8  1  10 F8        		BPL SEC2FSE1
+000DCA  1               
+000DCA  1  A5 00        PTR2FPTR:	LDA FATPTRS				;and FATPTRS
+000DCC  1  8D 96 07     		STA FCURPTR
+000DCF  1  A5 01        		LDA FATPTRS+1
+000DD1  1  8D 97 07     		STA FCURPTR+1
+000DD4  1               
+000DD4  1  A0 00        		LDY #0					;copy current FCB to FCB-table
+000DD6  1  AE 80 07     		LDX FFCBOFF
+000DD9  1  B9 7F 07     SWAPFCB0:	LDA FIOCBNR,Y
+000DDC  1  9D 00 08     		STA FCB0,X
+000DDF  1  E8           		INX
+000DE0  1  C8           		INY
+000DE1  1  C0 2F        		CPY #FBLKEND-F+1
+000DE3  1  D0 F4        		BNE SWAPFCB0
+000DE5  1               
+000DE5  1  A5 2E        SWAPIN:		LDA ICIDNO
+000DE7  1  20 8F 0D     		JSR GETFCB
+000DEA  1               
+000DEA  1  A0 00        		LDY #0
+000DEC  1  BD 00 08     SWAPIN0:	LDA FCB0,X
+000DEF  1  99 7F 07     		STA FIOCBNR,Y
+000DF2  1  E8           		INX
+000DF3  1  C8           		INY
+000DF4  1  C0 2F        		CPY #FBLKEND-F+1
+000DF6  1  D0 F4        		BNE SWAPIN0
+000DF8  1               
+000DF8  1  A5 22        		LDA ICCOMZ				;if not OPEN command, read current sector
+000DFA  1  C9 03        		CMP #OPEN				;of file
+000DFC  1  D0 01        		BNE FSEC2SEC
+000DFE  1  60           SETFCB9:	RTS
+000DFF  1               
+000DFF  1  A2 03        FSEC2SEC:	LDX #3
+000E01  1  BD 98 07     FSEC2SE1:	LDA FSECTOR,X
+000E04  1  95 43        		STA SECTOR,X
+000E06  1  CA           		DEX
+000E07  1  10 F8        		BPL FSEC2SE1
+000E09  1               
+000E09  1  AD 96 07     FPTR2PTR:	LDA FCURPTR
+000E0C  1  85 00        		STA FATPTRS
+000E0E  1  AD 97 07     		LDA FCURPTR+1
+000E11  1  85 01        		STA FATPTRS+1
+000E13  1               
+000E13  1  4C D8 18     		JMP READSEC
+000E16  1               
+000E16  1               ;-------------------------------------------------------------------------------
+000E16  1               ; Find an empty FCB in FCB table and swap-in
+000E16  1               ;-------------------------------------------------------------------------------
+000E16  1  A9 FF        OPENFCB:	LDA #$FF
+000E18  1  20 8F 0D     		JSR GETFCB				;get FREE FCB
+000E1B  1  30 15        		BMI OPENFCB2				;no free available
+000E1D  1               
+000E1D  1  A5 2E        OPENFCB1:	LDA ICIDNO
+000E1F  1  9D 00 08     		STA FCB0,X
+000E22  1               
+000E22  1  A9 00        		LDA #0					;CLEAR FCB
+000E24  1  A0 2D        		LDY #FBLKEND-F-1
+000E26  1  9D 02 08     OPENFCB0:	STA FCB0+2,X
+000E29  1  E8           		INX
+000E2A  1  88           		DEY
+000E2B  1  D0 F9        		BNE OPENFCB0
+000E2D  1               
+000E2D  1  20 B5 0D     		JSR SETFCB				;copy FCB from table to current FCB
+000E30  1  A0 01        		LDY #1
+000E32  1  60           OPENFCB2:	RTS
+000E33  1               
+000E33  1               ;-------------------------------------------------------------------------------
+000E33  1               ; checks if filenmae contains only valid characters
+000E33  1               ; returns N=0 if yes
+000E33  1               ;-------------------------------------------------------------------------------
+000E33  1  A2 0A        VALIDNAM:	LDX #10
+000E35  1  BD 9C 07     VALIDNA1:	LDA DIRTEXT,X				;CARD
+000E38  1  C9 30        		CMP #'0'
+000E3A  1  90 0C        		BCC VALIDNA3				;< 0? => check special chars
+000E3C  1  C9 3A        		CMP #'9'+1				;<= 9?
+000E3E  1  90 25        		BCC VALIDNA2				;yes OK, next char
+000E40  1  C9 41        		CMP #'A'				;
+000E42  1  90 04        		BCC VALIDNA3				;< A? => check special chars
+000E44  1  C9 5B        		CMP #'Z'+1				;<= Z?
+000E46  1  90 1D        		BCC VALIDNA2				;yes OK, next char
+000E48  1               
+000E48  1  AC 69 07     VALIDNA3:	LDY VALIDS				;check for special chars
+000E4B  1  D9 54 0E     VALIDNA4:	CMP VALIDCHA,Y
+000E4E  1  F0 15        		BEQ VALIDNA2
+000E50  1  88           		DEY
+000E51  1  10 F8        		BPL VALIDNA4
+000E53  1  60           		RTS					;no valid char found, return N=1
+000E54  1               
+000E54  1  20 7E 21 40  VALIDCHA:	.byte " ~!@#$%&()-_^{}'?"		;usually test without "?", so 16+1 bytes!
+000E58  1  23 24 25 26  
+000E5C  1  28 29 2D 5F  
+000E65  1               
+000E65  1  CA           VALIDNA2:	DEX
+000E66  1  10 CD        		BPL VALIDNA1	;X=$FF
+000E68  1               
+000E68  1  A9 20        		LDA #32		;check if first char != space
+000E6A  1  CD 9C 07     		CMP DIRTEXT
+000E6D  1  F0 02        		BEQ VALIDNA9
+000E6F  1               
+000E6F  1               ;		CMP DIRTEXT+8
+000E6F  1               ;		BEQ VALIDNA9
+000E6F  1               
+000E6F  1  E8           		INX		;X=0, make sure N=0
+000E70  1  60           		RTS
+000E71  1               
+000E71  1  CA           VALIDNA9:	DEX		;X=$FE, N=1
+000E72  1  60           		RTS
+000E73  1               
+000E73  1               ;-------------------------------------------------------------------------------
+000E73  1               ; looks for a free cluster
+000E73  1               ;-------------------------------------------------------------------------------
+000E73  1  A2 02        INITDIR:	LDX #2					;start at cluster #2
+000E75  1  A9 00        		LDA #0
+000E77  1  20 70 17     		JSR GETFCLUS				;get a free cluster for dir
+000E7A  1  AD 3C 07     		LDA NEWCLUS+1				;save NEWCLUS
+000E7D  1  48           		PHA
+000E7E  1  AD 3B 07     		LDA NEWCLUS
+000E81  1  48           		PHA
+000E82  1               
+000E82  1  20 70 0F     		JSR FINDFDIR
+000E85  1  B0 0A        		BCS INITDIR1
+000E87  1  68           		PLA					;no free dir, pop NEWCLUS and bail out of OPEN
+000E88  1  68           		PLA
+000E89  1  68           		PLA
+000E8A  1  68           		PLA
+000E8B  1  20 A9 0D     ERR169:		JSR CLOSEFCB				;Cluster not freed!
+000E8E  1  A0 A9        		LDY #169
+000E90  1  60           		RTS
+000E91  1               
+000E91  1               INITDIR1:
+000E91  1  A0 00        		LDY #0		;DIRNAME IN
+000E93  1  8C AD 07     		STY DIRFILE	;RESET DIRFILE
+000E96  1               INITDIR2:
+000E96  1  B9 9C 07     		LDA DIRTEXT,Y	;DIR ENTRY
+000E99  1  91 00        		STA (FATPTRS),Y
+000E9B  1  C8           		INY
+000E9C  1  C0 0B        		CPY #11
+000E9E  1  D0 F6        		BNE INITDIR2
+000EA0  1               
+000EA0  1  A9 00        		LDA #0		;INITIALIZE
+000EA2  1  91 00        INITDIR3:	STA (FATPTRS),Y	;REST
+000EA4  1  C8           		INY
+000EA5  1  C0 20        		CPY #32
+000EA7  1  D0 F9        		BNE INITDIR3
+000EA9  1               
+000EA9  1  8C 3D 07     		STY DDIRTY	;PUT START
+000EAC  1  A0 1A        		LDY #DCLUS	;CLUSTER
+000EAE  1  68           		PLA		;INTO
+000EAF  1  8D 91 07     		STA FCURCLUS
+000EB2  1               ;		JSR PUTHEX
+000EB2  1  91 00        		STA (FATPTRS),Y	;DIR ENTRY
+000EB4  1  C8           		INY
+000EB5  1  68           		PLA
+000EB6  1  8D 92 07     		STA FCURCLUS+1
+000EB9  1               ;		JSR PUTHEX
+000EB9  1  91 00        		STA (FATPTRS),Y
+000EBB  1               
+000EBB  1               ;		BRK
+000EBB  1  60           		RTS
+000EBC  1               
+000EBC  1               ;-------------------------------------------------------------------------------
+000EBC  1               ; OPENCHA - Open Channel
+000EBC  1               ; opens a FCB file control block for IO
+000EBC  1               ;-------------------------------------------------------------------------------
+000EBC  1  20 16 0E     OPENCHA:	JSR OPENFCB
+000EBF  1  30 27        		BMI OPENERR
+000EC1  1               ;		RTS
+000EC1  1               
+000EC1  1               ;		LDA #$FF
+000EC1  1               ;		STA FBURST
+000EC1  1               
+000EC1  1  A5 2A        		LDA ICAX1Z				;check if Open Directory is meant
+000EC3  1  29 06        		AND #6
+000EC5  1  C9 06        		CMP #6
+000EC7  1  D0 0B        		BNE OPENFILE
+000EC9  1               
+000EC9  1  20 DE 15     OPENDI:		JSR INITLSEC
+000ECC  1  A9 00        		LDA #0
+000ECE  1  8D 6A 07     		STA HILF
+000ED1  1  4C 65 0D     		JMP GETFILE
+000ED4  1               
+000ED4  1  A9 01        OPENFILE:	LDA #1					;FILE THERE?
+000ED6  1  20 65 0D     		JSR GETFILE
+000ED9  1  10 19        		BPL OPENEXIS				;YES
+000EDB  1               
+000EDB  1  A5 2A        OPENNEW:	LDA ICAX1Z				;WRITE FILE?
+000EDD  1  29 0D        		AND #1+4+8				;NO READ OR
+000EDF  1  C9 08        		CMP #8					;APPEND
+000EE1  1  F0 06        		BEQ OPENNEW3
+000EE3  1  20 A9 0D     OPEN170:	JSR CLOSEFCB
+000EE6  1  A0 AA        		LDY #170
+000EE8  1  60           OPENERR:	RTS
+000EE9  1               
+000EE9  1  20 33 0E     OPENNEW3:	JSR VALIDNAM
+000EEC  1  10 03        		BPL OPENNEW4
+000EEE  1  4C 5F 0D     		JMP ERR165
+000EF1  1               
+000EF1  1  20 73 0E     OPENNEW4:	JSR INITDIR
+000EF4  1               
+000EF4  1               OPENEXIS:
+000EF4  1               ;-------------------------------------------------------------------------------
+000EF4  1               ; remember directory position (FATPTRS and SECTOR)
+000EF4  1               ;-------------------------------------------------------------------------------
+000EF4  1  A5 00        SAVEDIR:	LDA FATPTRS
+000EF6  1  8D A7 07     		STA DIRPTR
+000EF9  1  A5 01        		LDA FATPTRS+1
+000EFB  1  8D A8 07     		STA DIRPTR+1
+000EFE  1               
+000EFE  1  A2 03        		LDX #3
+000F00  1  B5 43        SAVEDIR1:	LDA SECTOR,X
+000F02  1  9D A9 07     		STA DIRSEC,X
+000F05  1  CA           		DEX
+000F06  1  10 F8        		BPL SAVEDIR1
+000F08  1               
+000F08  1  A2 05        		LDX #5		;GET START
+000F0A  1  A0 1F        		LDY #DCLUS+5	;CLUSTER
+000F0C  1  B1 00        OPENF1:		LDA (FATPTRS),Y	;AND FILELEN
+000F0E  1  9D 81 07     		STA FSTRTCL,X	;FROM
+000F11  1  88           		DEY		;DIRENTRY
+000F12  1  CA           		DEX
+000F13  1  10 F7        		BPL OPENF1
+000F15  1               
+000F15  1               ;		LDX #15		INITIALIZE
+000F15  1               ;		LDA #0		REST
+000F15  1               ;		STA FCURSEC
+000F15  1               ;OPENF2		STA FBYT2RD,X
+000F15  1               ;		DEX
+000F15  1               ;		BNE OPENF2
+000F15  1               
+000F15  1  A5 2A        		LDA ICAX1Z	;IF READ
+000F17  1  29 04        		AND #4		;FINISHED
+000F19  1  D0 29        		BNE OPENEND
+000F1B  1               
+000F1B  1               ;		LDA #'*'
+000F1B  1               ;		JSR PRINT
+000F1B  1               
+000F1B  1  A5 2A        		LDA ICAX1Z	;APPEND?
+000F1D  1  29 01        		AND #1
+000F1F  1  F0 0E        		BEQ OPENWRIT	;NO
+000F21  1               
+000F21  1  A2 03        		LDX #3		;if append
+000F23  1  BD 83 07     OPENF3:		LDA FILELEN,X	;copy filelen
+000F26  1  9D 89 07     		STA FRPOS,X	;to file-read-pos
+000F29  1  CA           		DEX
+000F2A  1  10 F7        		BPL OPENF3
+000F2C  1               
+000F2C  1  4C 44 0F     		JMP OPENEND
+000F2F  1               
+000F2F  1               OPENWRIT:
+000F2F  1  A0 FF        		LDY #$FF
+000F31  1  AE 81 07     		LDX FSTRTCL
+000F34  1  AD 82 07     		LDA FSTRTCL+1
+000F37  1  20 4A 0F     		JSR DELCLUS
+000F3A  1               
+000F3A  1  A9 00        		LDA #0
+000F3C  1  A2 03        		LDX #3
+000F3E  1  9D 83 07     OPENW4:		STA FILELEN,X
+000F41  1  CA           		DEX
+000F42  1  10 FA        		BPL OPENW4
+000F44  1               
+000F44  1  20 5A 15     OPENEND:	JSR FSEEK
+000F47  1  A0 01        		LDY #1
+000F49  1  60           		RTS
+000F4A  1               ;
+000F4A  1               ;
+000F4A  1               ;
+000F4A  1  8C 6A 07     DELCLUS:	STY HILF
+000F4D  1               
+000F4D  1  C9 FF        DELCLUS1:	CMP #$FF
+000F4F  1  D0 05        		BNE DELCLUS2
+000F51  1  E0 FF        		CPX #$FF
+000F53  1  D0 01        		BNE DELCLUS2
+000F55  1  60           		RTS
+000F56  1               
+000F56  1  20 2C 18     DELCLUS2:	JSR GETCLUST
+000F59  1  48           		PHA
+000F5A  1  8C 3E 07     		STY FDIRTY
+000F5D  1  AD 6A 07     		LDA HILF
+000F60  1  91 00        		STA (FATPTRS),Y
+000F62  1  88           		DEY
+000F63  1  91 00        		STA (FATPTRS),Y
+000F65  1  68           		PLA
+000F66  1               
+000F66  1  AC 6A 07     		LDY HILF
+000F69  1  F0 E2        		BEQ DELCLUS1
+000F6B  1  EE 6A 07     		INC HILF
+000F6E  1  F0 DD        		BEQ DELCLUS1
+000F70  1               ;
+000F70  1               ;
+000F70  1               ;
+000F70  1  A9 02        FINDFDIR:	LDA #2
+000F72  1  20 42 0D     		JSR DIRSTART
+000F75  1  20 61 13     		JSR OPENDIR
+000F78  1  B0 05        		BCS FINDFDI1
+000F7A  1               FINDFDI2:
+000F7A  1  20 5C 11     		JSR NEXTDIR
+000F7D  1  90 FB        		BCC FINDFDI2
+000F7F  1  60           FINDFDI1:	RTS
+000F80  1               
+000F80  1               
+000F80  1  A2 0A        STR2RAW:	LDX #10			;fill DIRTEXT
+000F82  1  A9 20        		LDA #32			;with spaces
+000F84  1  9D 9C 07     S2R12:		STA DIRTEXT,X
+000F87  1  CA           		DEX
+000F88  1  10 FA        		BPL S2R12
+000F8A  1               
+000F8A  1  E8           		INX			;x = 0
+000F8B  1  8E 4F 07     		STX WILD
+000F8E  1               
+000F8E  1  A9 2E        		LDA #'.'
+000F90  1  D1 24        		cmp_icbalz_y		;first char '.' (local dir)?
+000F92  1               ;		CMP (ICBALZ),Y
+000F92  1  D0 0E        		BNE S2R1			;no, goto S2R1
+000F94  1  8D 9C 07     		STA DIRTEXT			;save in first char of DIRTEXT
+000F97  1  C8           		INY					;examine next input char
+000F98  1  D1 24        		cmp_icbalz_y
+000F9A  1               ;		CMP (ICBALZ),Y		;also '.'?
+000F9A  1  D0 06        		BNE S2R1			;no, goto S2R1
+000F9C  1  8D 9D 07     		STA DIRTEXT+1		;save in 2nd char of DIRTEXT
+000F9F  1  C8           		INY					;Y += 2 ?
+000FA0  1  C8           		INY
+000FA1  1  60           		RTS					;return
+000FA2  1               
+000FA2  1  20 C4 0F     S2R1:		JSR S2R4		;call S2R4 until 8 chars processed
+000FA5  1  B0 04        		BCS S2R2
+000FA7  1  E0 08        		CPX #8
+000FA9  1  D0 F7        		BNE S2R1
+000FAB  1  C9 9B        S2R2:		CMP #EOL
+000FAD  1  F0 14        		BEQ S2R6
+000FAF  1  C9 2F        		CMP #'/'
+000FB1  1  F0 10        		BEQ S2R6
+000FB3  1  A2 08        		LDX #8
+000FB5  1  A9 00        		LDA #0
+000FB7  1  8D 4F 07     		STA WILD
+000FBA  1  20 C4 0F     S2R5:		JSR S2R4
+000FBD  1  B0 04        		BCS S2R6
+000FBF  1  E0 0B        		CPX #11
+000FC1  1  D0 F7        		BNE S2R5
+000FC3  1  60           S2R6:		RTS
+000FC4  1               
+000FC4  1  B1 24        S2R4:		lda_icbalz_y
+000FC6  1               ;		LDA (ICBALZ),Y
+000FC6  1               ;		JSR PRINT
+000FC6  1  2C 4F 07     		BIT WILD		;wildcard active?
+000FC9  1  30 26        		BMI S2R7		;yes => S2R7
+000FCB  1               
+000FCB  1  C8           		INY
+000FCC  1  C9 2A        		CMP #'*'
+000FCE  1  D0 05        		BNE S2R8
+000FD0  1  CE 4F 07     		DEC WILD
+000FD3  1  30 1C        		BMI S2R7
+000FD5  1  C9 2E        S2R8:		CMP #'.'
+000FD7  1  D0 06        		BNE S2R11
+000FD9  1  E0 08        		CPX #8
+000FDB  1  90 26        		BCC S2R3
+000FDD  1  18           		CLC
+000FDE  1  60           		RTS
+000FDF  1  C9 20        S2R11:		CMP #32			;is space?
+000FE1  1  F0 20        		BEQ S2R3		;yes => next
+000FE3  1  C9 9B        		CMP #EOL
+000FE5  1  F0 1C        		BEQ S2R3
+000FE7  1  C9 2F        		CMP #'/'
+000FE9  1  F0 18        		BEQ S2R3
+000FEB  1  C9 00        		CMP #0
+000FED  1  F0 14        		BEQ S2R3
+000FEF  1  D0 02        		BNE S2R9
+000FF1  1  A9 3F        S2R7:		LDA #'?'
+000FF3  1  C9 61        S2R9:		CMP #'a'
+000FF5  1  90 06        		BCC S2R10
+000FF7  1  C9 7B        		CMP #'z'+1
+000FF9  1  B0 02        		BCS S2R10
+000FFB  1  E9 1F        		SBC #31
+000FFD  1  9D 9C 07     S2R10:		STA DIRTEXT,X		;normal character
+001000  1  E8           		INX
+001001  1  18           		CLC
+001002  1  60           		RTS
+001003  1  E8           S2R3:		INX
+001004  1  38           		SEC
+001005  1  60           		RTS
+001006  1               
+001006  1               ;
+001006  1               ;
+001006  1               ;
+001006  1  20 B5 0D     CLOSECHA:	JSR SETFCB
+001009  1               
+001009  1  A5 2A        		LDA ICAX1Z
+00100B  1  29 08        		AND #8
+00100D  1  F0 2D        		BEQ CLOSE5
+00100F  1               
+00100F  1  20 70 18     		JSR WRITEFAT
+001012  1               
+001012  1  A2 03        		LDX #3
+001014  1  BD A9 07     CLOSE3:		LDA DIRSEC,X
+001017  1  95 43        		STA SECTOR,X
+001019  1  CA           		DEX
+00101A  1  10 F8        		BPL CLOSE3
+00101C  1  20 D8 18     		JSR READSEC
+00101F  1               
+00101F  1  AD A7 07     		LDA DIRPTR
+001022  1  85 02        		STA FATPTRD
+001024  1  AD A8 07     		LDA DIRPTR+1
+001027  1  85 03        		STA FATPTRD+1
+001029  1               
+001029  1  A0 1F        		LDY #DLEN+3
+00102B  1  8C 3D 07     		STY DDIRTY
+00102E  1  A2 03        		LDX #3
+001030  1  BD 83 07     CLOSE4:		LDA FILELEN,X
+001033  1               ;		JSR PUTHEX
+001033  1  91 02        		STA (FATPTRD),Y
+001035  1  88           		DEY
+001036  1  CA           		DEX
+001037  1  10 F7        		BPL CLOSE4
+001039  1               
+001039  1  20 BE 18     		JSR WRITESEC
+00103C  1               
+00103C  1  20 A9 0D     CLOSE5:		JSR CLOSEFCB
+00103F  1  4C 5D 13     		JMP OK
+001042  1               
+001042  1               ;
+001042  1               ;
+001042  1               ;
+001042  1               ;
+001042  1               ; PUTCHANNEL
+001042  1               ;
+001042  1  85 2F        PUTCHA:		STA CIOCHR	; save byte, could have been called via ICPTLZ
+001044  1               
+001044  1  20 B5 0D     		JSR SETFCB
+001047  1               
+001047  1  A5 2A        		LDA ICAX1Z	;UPDATE?
+001049  1  29 04        		AND #4		;CECK
+00104B  1  F0 08        		BEQ PUTCHA1	;FILELEN
+00104D  1               
+00104D  1  20 DE 13     PUTUPD:		JSR CHECKLEN	;file-pos less than filelen
+001050  1  90 5E        		BCC PUTSLOW1	;yes, continue slow
+001052  1  A0 88        PUTUPD1:	LDY #EOF	;signal error
+001054  1  60           		RTS
+001055  1               
+001055  1  A5 00        PUTCHA1:	LDA FATPTRS	;points to begin of page?
+001057  1  D0 54        		BNE PUTSLOW
+001059  1  A5 29        		LDA ICBLHZ	;at least 512 bytes To write?
+00105B  1  C9 02        		CMP #2
+00105D  1  90 4E        		BCC PUTSLOW
+00105F  1  A5 01        		LDA FATPTRS+1	;points to begin of buffer?
+001061  1  C9 09        		CMP #>BUFFER
+001063  1  D0 48        		BNE PUTSLOW
+001065  1  A5 22        		LDA ICCOMZ	;binary put?
+001067  1  C9 0B        		CMP #PUTCHR
+001069  1  D0 42        		BNE PUTSLOW
+00106B  1               
+00106B  1  EE 87 07     PUTFAST:	INC FWBURST
+00106E  1  A0 00        		LDY #0
+001070  1  B1 24        PUTFAST1:	lda_icbalz_y
+001072  1               ;		LDA (ICBALZ),Y
+001072  1  99 00 09     		STA BUFFER,Y
+001075  1  C8           		INY
+001076  1  D0 F8        		BNE PUTFAST1
+001078  1  E6 25        		INC ICBAHZ
+00107A  1  B1 24        PUTFAST2:	lda_icbalz_y
+00107C  1               ;		LDA (ICBALZ),Y
+00107C  1  99 00 0A     		STA BUFFER+$100,Y
+00107F  1  C8           		INY
+001080  1  D0 F8        		BNE PUTFAST2
+001082  1               
+001082  1  C8           		INY
+001083  1  8C 3D 07     		STY DDIRTY
+001086  1               
+001086  1  20 6B 14     		JSR INCRPOS2
+001089  1  20 6B 14     		JSR INCRPOS2
+00108C  1               
+00108C  1  20 C5 10     		JSR INCFILELE2
+00108F  1  20 C5 10     		JSR INCFILELE2
+001092  1               
+001092  1  38           		SEC
+001093  1  A5 28        		LDA ICBLLZ
+001095  1  E9 FF        		SBC #$FF
+001097  1  85 28        		STA ICBLLZ
+001099  1  A5 29        		LDA ICBLHZ
+00109B  1  E9 01        		SBC #1
+00109D  1  85 29        		STA ICBLHZ
+00109F  1               	.IF PLATFORM=0
+00109F  1               		lda ICBLBZ
+00109F  1               		sbc #0
+00109F  1               		sta ICBLBZ
+00109F  1               	.ENDIF
+00109F  1               
+00109F  1  18           		CLC
+0010A0  1  A5 24        		LDA ICBALZ
+0010A2  1  69 FF        		ADC #$FF
+0010A4  1  85 24        		STA ICBALZ
+0010A6  1  90 02        		BCC PUTFAST3
+0010A8  1  E6 25        		INC ICBAHZ
+0010AA  1               	.IF PLATFORM=0
+0010AA  1               		bne PUTFAST3
+0010AA  1               		inc ICBABZ
+0010AA  1               	.ENDIF
+0010AA  1               
+0010AA  1  4C F0 14     PUTFAST3:	JMP INCSEC
+0010AD  1               
+0010AD  1               
+0010AD  1  20 C0 10     PUTSLOW:	JSR INCFILELEN
+0010B0  1  A5 2F        PUTSLOW1:	LDA CIOCHR
+0010B2  1  A0 00        		LDY #0
+0010B4  1  91 00        		STA (FATPTRS),Y
+0010B6  1  C8           		INY
+0010B7  1  8C 3D 07     		STY DDIRTY
+0010BA  1               
+0010BA  1  20 66 14     		JSR INCRPOS
+0010BD  1  4C E4 14     		JMP INCPTR
+0010C0  1               
+0010C0  1               
+0010C0  1  EE 83 07     INCFILELEN:	INC FILELEN
+0010C3  1  D0 0D        		BNE INCFILELEX
+0010C5  1  EE 84 07     INCFILELE2:	INC FILELEN+1
+0010C8  1  D0 08        		BNE INCFILELEX
+0010CA  1  EE 85 07     		INC FILELEN+2
+0010CD  1  D0 03        		BNE INCFILELEX
+0010CF  1  EE 86 07     		INC FILELEN+3
+0010D2  1  60           INCFILELEX:	RTS
+0010D3  1               
+0010D3  1               ;
+0010D3  1               ; Get Character HTABS-Handler Rountine
+0010D3  1               ;
+0010D3  1  20 B5 0D     GETCHA:		JSR SETFCB
+0010D6  1  A6 2E        		LDX ICIDNO
+0010D8  1  BD 4A 03     		LDA ICAX1,X
+0010DB  1  29 02        		AND #2
+0010DD  1  D0 03        		BNE GETDIR	;if Bit 1 set, dir access
+0010DF  1               
+0010DF  1  4C FD 13     GETBYTE:	JMP READBYTE
+0010E2  1               
+0010E2  1               GETDIR:		;lda #'*'
+0010E2  1               		;jsr PRINT
+0010E2  1               
+0010E2  1  AC 6A 07     		LDY HILF	;each call to GETDIR return just one byte
+0010E5  1  10 03        		BPL GETDIR6	;HILF counts the bytes in one dir entry
+0010E7  1               		;lda #'E'
+0010E7  1               		;jsr PRINT
+0010E7  1  A0 88        		LDY #EOF
+0010E9  1  60           		RTS
+0010EA  1               
+0010EA  1  D0 3F        GETDIR6:	BNE GETDIR1		; Y > 0, get next Dir
+0010EC  1               
+0010EC  1  A9 20        		LDA #32			; Y==0, init DIRLINE
+0010EE  1  8D 58 07     		STA DIRLINE+8
+0010F1  1  8D 5C 07     		STA DIRLENG-1
+0010F4  1  A9 9B        		LDA #EOL
+0010F6  1  8D 67 07     		STA DIREOF
+0010F9  1               
+0010F9  1  A2 00        		LDX #0			; copy DIR-info
+0010FB  1  B1 00        GETDIR3:	LDA (FATPTRS),Y		; from sector-buffer
+0010FD  1  9D 50 07     		STA DIRLINE,X		; into DIRLINE
+001100  1  E8           		INX
+001101  1  C8           		INY
+001102  1  C0 08        		CPY #8			; 8.3 jump over " "
+001104  1  D0 01        		BNE GETDIR3A
+001106  1  E8           		INX
+001107  1               
+001107  1  C0 0B        GETDIR3A:	CPY #11
+001109  1  D0 F0        		BNE GETDIR3
+00110B  1               
+00110B  1  A0 0B        		LDY #DATTRIB
+00110D  1  B1 00        		LDA (FATPTRS),Y
+00110F  1  A0 09        		LDY #9
+001111  1  29 10        		AND #16			;ist directory?
+001113  1  F0 0B        		BEQ GETDLEN		;no, get file length
+001115  1               
+001115  1  B9 52 11     GETDTXT:	LDA DIRTXT,Y		;write "DIR" into
+001118  1  99 5D 07     		STA DIRLENG,Y		;output length
+00111B  1  88           		DEY			;pos 9 downto 0
+00111C  1  10 F7        		BPL GETDTXT
+00111E  1  30 09        		BMI GETDIR5
+001120  1               
+001120  1  B9 31 07     GETDLEN:	LDA DECIMAL,Y
+001123  1  99 5D 07     		STA DIRLENG,Y
+001126  1  88           		DEY
+001127  1  10 F7        		BPL GETDLEN
+001129  1               
+001129  1  A0 00        GETDIR5:	LDY #0
+00112B  1               
+00112B  1               GETDIR1:	;lda #'1'
+00112B  1               		;jsr PRINT
+00112B  1               
+00112B  1  EE 6A 07     		INC HILF
+00112E  1  B9 50 07     		LDA DIRLINE,Y		;if Y points to end in DIRLINE
+001131  1  C9 9B        		CMP #EOL		;read next dir entry
+001133  1  D0 14        		BNE GETDIR7
+001135  1               
+001135  1               		;lda #'2'
+001135  1               		;jsr PRINT
+001135  1               
+001135  1  20 81 0D     		JSR NEXTFILE
+001138  1  30 09        		BMI GETDIR9
+00113A  1               
+00113A  1               		;lda #'D'
+00113A  1               		;jsr PRINT
+00113A  1               
+00113A  1  A0 00        		LDY #0
+00113C  1  8C 6A 07     		STY HILF
+00113F  1               
+00113F  1  B1 00        		LDA (FATPTRS),Y
+001141  1  D0 04        		BNE GETDIR8
+001143  1               
+001143  1               GETDIR9:	;lda #'9'
+001143  1               		;jsr PRINT
+001143  1               
+001143  1  88           		DEY
+001144  1  8C 6A 07     		STY HILF		;NEG.
+001147  1               
+001147  1  A9 9B        GETDIR8:	LDA #EOL
+001149  1               
+001149  1               GETDIR7:
+001149  1               	.IF PLATFORM > 0
+001149  1  C9 7E        		CMP #$7E		; "~" in "-"
+00114B  1  D0 02        		BNE GETDIR2
+00114D  1  A9 2D        		LDA #'-'
+00114F  1               	.ENDIF
+00114F  1               GETDIR2:	;pha
+00114F  1               		;lda #'#'
+00114F  1               		;jsr PRINT
+00114F  1               		;pla
+00114F  1  A0 01        		LDY #1
+001151  1  60           		RTS
+001152  1               
+001152  1               ;
+001152  1               ;	     1234567890123
+001152  1               ;DIRLINE	.byte "             "
+001152  1               ;DIRLENG	.byte "           "
+001152  1               ;	.byte EOL
+001152  1               ;		      "0123456789"
+001152  1  20 20 20 20  DIRTXT:		.byte "       DIR"
+001156  1  20 20 20 44  
+00115A  1  49 52        
+00115C  1               ;
+00115C  1               NEXTDIR:	;lda #'N'
+00115C  1               		;jsr PRINT
+00115C  1               
+00115C  1  20 88 13     		JSR READDIR
+00115F  1  B0 3E        		BCS NEXTDIR9	;No further Dir, RTS
+001161  1               
+001161  1               CHECKDIR:
+001161  1               ;		jsr NEWLINE
+001161  1               ;
+001161  1               ;		ldy #0
+001161  1               ;ch1:		lda (FATPTRS),Y
+001161  1               ;		jsr PUTHEX
+001161  1               ;		lda #' '
+001161  1               ;		jsr PRINT
+001161  1               ;		iny
+001161  1               ;		cpy #16
+001161  1               ;		bne ch1
+001161  1               ;
+001161  1               ;		lda #' '
+001161  1               ;		jsr PRINT
+001161  1               ;
+001161  1               ;		ldy #0
+001161  1               ;ch2:		lda (FATPTRS),Y
+001161  1               ;		jsr PRINT
+001161  1               ;		iny
+001161  1               ;		cpy #8
+001161  1               ;		bne ch2
+001161  1               ;		jsr NEWLINE
+001161  1               
+001161  1  A0 00        		LDY #DNAME
+001163  1  AE AD 07     		LDX DIRFILE
+001166  1  B1 00        		LDA (FATPTRS),Y
+001168  1               
+001168  1  C9 E5        		CMP #DEL	;ENTRY
+00116A  1  D0 06        		BNE NEXTDIR2	;DELETED?
+00116C  1  E0 02        		CPX #2		;AND
+00116E  1  D0 EC        		BNE NEXTDIR	;DIRFILE=2
+001170  1  38           		SEC		;END C=1
+001171  1  60           		RTS
+001172  1               
+001172  1               NEXTDIR2:	;lda #'2'
+001172  1               		;jsr PRINT
+001172  1               
+001172  1  A0 0B        		LDY #DATTRIB
+001174  1  B1 00        		LDA (FATPTRS),Y	;SKIP
+001176  1  29 08        		AND #8		;VOLUME
+001178  1  D0 E2        		BNE NEXTDIR	;LABEL
+00117A  1               
+00117A  1  B1 00        		LDA (FATPTRS),Y	;DIR?
+00117C  1  29 10        		AND #16
+00117E  1  E0 00        		CPX #0		;DIRFILE<>0
+001180  1  F0 0C        		BEQ NEXTDIR3	;SKIP DIRS
+001182  1  E0 03        		CPX #3
+001184  1  D0 05        		BNE NEXTDIR4
+001186  1  AA           		TAX
+001187  1  D0 05        		BNE NEXTDIR3
+001189  1  F0 D1        		BEQ NEXTDIR
+00118B  1               NEXTDIR4:
+00118B  1  AA           		TAX
+00118C  1  D0 CE        		BNE NEXTDIR
+00118E  1               
+00118E  1               NEXTDIR3:
+00118E  1               ;		LDY #0
+00118E  1               ;ND1:		LDA (FATPTRS),Y
+00118E  1               ;		JSR PRINT
+00118E  1               ;		INY
+00118E  1               ;		CPY #11
+00118E  1               ;		BNE ND1
+00118E  1               
+00118E  1  A0 1F        		LDY #DLEN+3
+001190  1  A2 03        		LDX #3
+001192  1               NEXTDIR1:
+001192  1  B1 00        		LDA (FATPTRS),Y
+001194  1  9D 28 07     		STA BIN,X
+001197  1  88           		DEY
+001198  1  CA           		DEX
+001199  1  10 F7        		BPL NEXTDIR1
+00119B  1               
+00119B  1  20 85 14     		JSR BIN2DEC
+00119E  1               ;		lda #'B'
+00119E  1               ;		jsr PRINT
+00119E  1  18           		CLC
+00119F  1  60           NEXTDIR9:	RTS
+0011A0  1               
+0011A0  1  4C 5D 13     STATUSCHA:	JMP OK
+0011A3  1               
+0011A3  1  A5 22        SPECIAL:	LDA ICCOMZ
+0011A5  1  A2 04        		LDX #(XFUNCEND-XFUNC)
+0011A7  1  DD CE 11     SPECIAL2:	CMP XFUNC,X
+0011AA  1  F0 06        		BEQ SPECIAL1
+0011AC  1  CA           		DEX
+0011AD  1  10 F8        		BPL SPECIAL2
+0011AF  1  A0 84        		LDY #132
+0011B1  1  60           		RTS
+0011B2  1               
+0011B2  1  8A           SPECIAL1:	TXA
+0011B3  1  0A           		ASL			;* 2
+0011B4  1  8D 6A 07     		STA HILF		;store found X-pos
+0011B7  1               
+0011B7  1  A5 22        		LDA ICCOMZ
+0011B9  1  C9 28        		CMP #CFSTAT		;no OPENFCB for FSTAT
+0011BB  1  F0 05        		BEQ SPECIAL3
+0011BD  1               
+0011BD  1  20 16 0E     		JSR OPENFCB
+0011C0  1  30 0B        		BMI SPECIAL9		;no free FCB
+0011C2  1               SPECIAL3:
+0011C2  1               ;		LDA #$FF
+0011C2  1               ;		STA FBURST
+0011C2  1  AE 6A 07     		LDX HILF		;reload X-pos
+0011C5  1  BD D4 11     		LDA XJMPTAB+1,X		;jump to special-function
+0011C8  1  48           		PHA
+0011C9  1  BD D3 11     		LDA XJMPTAB,X
+0011CC  1  48           		PHA
+0011CD  1               SPECIAL9:
+0011CD  1  60           		RTS
+0011CE  1               
+0011CE  1  21           XFUNC:		.byte CDELETE
+0011CF  1  29           		.byte CCHADIR
+0011D0  1  20           		.byte CRENAME
+0011D1  1  28           		.byte CFSTAT
+0011D2  1  22           XFUNCEND:	.byte CCREDIR
+0011D3  1               
+0011D3  1               
+0011D3  1  25 13        XJMPTAB:	.word DELETE-1
+0011D5  1  C1 12        		.word CHADIR-1
+0011D7  1  EC 11        		.word RENAME-1
+0011D9  1  DC 11        		.word FSTAT-1
+0011DB  1  3D 12        		.word CREDIR-1
+0011DD  1               ;
+0011DD  1               ;
+0011DD  1               ;
+0011DD  1               
+0011DD  1               ;
+0011DD  1               ;
+0011DD  1               ;
+0011DD  1               FSTAT:		;JSR SETFCB
+0011DD  1               ;		BPL FSTAT2
+0011DD  1               ;		RTS
+0011DD  1               
+0011DD  1  A0 05        FSTAT2:		LDY #5
+0011DF  1  A2 03        		LDX #3
+0011E1  1  BD 83 07     FSTAT1:		LDA FILELEN,X
+0011E4  1  91 24        		sta_icbalz_y
+0011E6  1  88           		DEY
+0011E7  1  CA           		DEX
+0011E8  1  10 F7        		BPL FSTAT1
+0011EA  1  4C 5D 13     		JMP OK
+0011ED  1               
+0011ED  1  A0 00        RENAME:		LDY #0
+0011EF  1  B1 24        RENAME2:	lda_icbalz_y
+0011F1  1               ;		LDA (ICBALZ),Y
+0011F1  1  C9 2C        		CMP #','
+0011F3  1  F0 0A        		BEQ RENAME1	;FOUND
+0011F5  1  C9 9B        		CMP #EOL
+0011F7  1  F0 03        		BEQ RENAME8
+0011F9  1  C8           		INY
+0011FA  1  D0 F3        		BNE RENAME2
+0011FC  1  4C 5F 0D     RENAME8:	JMP ERR165
+0011FF  1               
+0011FF  1  C8           RENAME1:	INY
+001200  1  20 80 0F     		JSR STR2RAW
+001203  1  EE 69 07     		INC VALIDS
+001206  1  20 33 0E     		JSR VALIDNAM
+001209  1  08           		PHP
+00120A  1  CE 69 07     		DEC VALIDS
+00120D  1  28           		PLP
+00120E  1  10 03        		BPL RENAME4
+001210  1  4C 5F 0D     		JMP ERR165
+001213  1               
+001213  1  A2 0A        RENAME4:	LDX #10
+001215  1  BD 9C 07     RENAME3:	LDA DIRTEXT,X
+001218  1  9D 43 07     		STA DIRRENA,X
+00121B  1  CA           		DEX
+00121C  1  10 F7        		BPL RENAME3
+00121E  1               
+00121E  1  A9 01        		LDA #1
+001220  1  20 65 0D     		JSR GETFILE
+001223  1  30 16        		BMI RENAME9
+001225  1               
+001225  1  A0 0A        RENAME7:	LDY #10
+001227  1  B9 43 07     RENAME6:	LDA DIRRENA,Y
+00122A  1  C9 3F        		CMP #'?'
+00122C  1  F0 05        		BEQ RENAME5
+00122E  1               
+00122E  1               ;		TAX
+00122E  1               ;		LDA (FATPTRS),Y
+00122E  1               ;		JSR PRINT
+00122E  1               ;		TXA
+00122E  1               
+00122E  1  91 00        		STA (FATPTRS),Y
+001230  1  8D 3D 07     		STA DDIRTY
+001233  1  88           RENAME5:	DEY
+001234  1  10 F1        		BPL RENAME6
+001236  1               
+001236  1  20 81 0D     		JSR NEXTFILE
+001239  1  10 EA        		BPL RENAME7
+00123B  1               
+00123B  1  4C 57 13     RENAME9:	JMP DELETE8
+00123E  1               ;
+00123E  1               ;
+00123E  1               ;
+00123E  1  A9 03        CREDIR:		LDA #3
+001240  1  20 65 0D     		JSR GETFILE
+001243  1  30 03        		BMI CREDIR1
+001245  1  4C E3 0E     		JMP OPEN170
+001248  1               
+001248  1  20 33 0E     CREDIR1:	JSR VALIDNAM
+00124B  1  10 03        		BPL CREDIR3
+00124D  1  4C 5F 0D     		JMP ERR165
+001250  1               
+001250  1  A9 08        CREDIR3:	LDA #8
+001252  1  85 2A        		STA ICAX1Z
+001254  1  20 73 0E     		JSR INITDIR
+001257  1               
+001257  1  A0 0B        		LDY #DATTRIB
+001259  1  A9 10        		LDA #16		;ATTR-DIR
+00125B  1  91 00        		STA (FATPTRS),Y
+00125D  1               
+00125D  1  A9 00        		LDA #0
+00125F  1  8D 95 07     		STA FCURSEC
+001262  1  20 10 17     		JSR CLU2SEC
+001265  1               
+001265  1  20 D8 18     CREDIR2:	JSR READSEC
+001268  1  20 4A 15     		JSR CLEARBUF
+00126B  1               
+00126B  1  AD 95 07     		LDA FCURSEC
+00126E  1  D0 38        		BNE CREDIR5
+001270  1               
+001270  1  A2 0A        		LDX #10
+001272  1  A9 20        		LDA #32
+001274  1  9D 00 09     CREDIR6:	STA BUFFER,X
+001277  1  9D 20 09     		STA BUFFER+32,X
+00127A  1  CA           		DEX
+00127B  1  10 F7        		BPL CREDIR6
+00127D  1               
+00127D  1  A9 2E        		LDA #'.'
+00127F  1  8D 00 09     		STA BUFFER
+001282  1  8D 20 09     		STA BUFFER+32
+001285  1  8D 21 09     		STA BUFFER+33
+001288  1               
+001288  1  A9 10        		LDA #16
+00128A  1  8D 0B 09     		STA BUFFER+DATTRIB
+00128D  1  8D 2B 09     		STA BUFFER+DATTRIB+32
+001290  1               
+001290  1  AD 91 07     		LDA FCURCLUS
+001293  1  8D 1A 09     		STA BUFFER+DCLUS
+001296  1  AD 92 07     		LDA FCURCLUS+1
+001299  1  8D 1B 09     		STA BUFFER+DCLUS+1
+00129C  1               
+00129C  1  AD 41 07     		LDA DIRCLUS
+00129F  1  8D 3A 09     		STA BUFFER+DCLUS+32
+0012A2  1  AD 42 07     		LDA DIRCLUS+1
+0012A5  1  8D 3B 09     		STA BUFFER+DCLUS+33
+0012A8  1               
+0012A8  1  EE 95 07     CREDIR5:	INC FCURSEC
+0012AB  1  AD 95 07     		LDA FCURSEC
+0012AE  1  CD 00 07     		CMP SECCLUS
+0012B1  1  F0 06        		BEQ CREDIR4
+0012B3  1               
+0012B3  1  20 79 14     		JSR INCSECTO
+0012B6  1  4C 65 12     		JMP CREDIR2
+0012B9  1               
+0012B9  1  20 BE 18     CREDIR4:	JSR WRITESEC
+0012BC  1  20 70 18     		JSR WRITEFAT
+0012BF  1  4C 57 13     		JMP DELETE8
+0012C2  1               ;
+0012C2  1               ;
+0012C2  1               ;
+0012C2  1  20 52 0D     CHADIR:		JSR CHECKHAN
+0012C5  1  10 01        		BPL CHADIR2
+0012C7  1  60           		RTS
+0012C8  1               
+0012C8  1  AD 41 07     CHADIR2:	LDA DIRCLUS		;push DIRCLUS to stack
+0012CB  1  48           		PHA
+0012CC  1  AD 42 07     		LDA DIRCLUS+1
+0012CF  1  48           		PHA
+0012D0  1  C8           		INY
+0012D1  1  B1 24        		lda_icbalz_y		;is '/' access from ROOT?
+0012D3  1               ;		LDA (ICBALZ),Y
+0012D3  1  C9 2F        		CMP #'/'
+0012D5  1  D0 0B        		BNE CHADIR3		;no
+0012D7  1               
+0012D7  1  A9 00        		LDA #0			;set DIRCLUS to 0
+0012D9  1  8D 41 07     		STA DIRCLUS
+0012DC  1  8D 42 07     		STA DIRCLUS+1
+0012DF  1  C8           		INY			;yes
+0012E0  1  B1 24        		lda_icbalz_y		;get next char
+0012E2  1               ;		LDA (ICBALZ),Y
+0012E2  1               
+0012E2  1  C9 9B        CHADIR3:	CMP #EOL		;end of filename?
+0012E4  1  D0 05        		BNE CHADIR3C		;no
+0012E6  1  68           		PLA			;otherwise pop DIRCLUS from stack
+0012E7  1  68           		PLA			;and exit
+0012E8  1  4C 5A 13     CHADIREND:	JMP DELETE9		;EXIT
+0012EB  1               
+0012EB  1  A9 03        CHADIR3C:	LDA #3			;read only dirs
+0012ED  1  20 42 0D     		JSR DIRSTART		;copy DIRCLUS to FSTRTCL
+0012F0  1  20 80 0F     		JSR STR2RAW
+0012F3  1  88           		DEY
+0012F4  1  8C 68 07     		STY SAVEY
+0012F7  1               
+0012F7  1  20 61 13     		JSR OPENDIR
+0012FA  1  90 0B        		BCC CHADIR3A
+0012FC  1  68           CHADIR3B:	PLA
+0012FD  1  8D 42 07     		STA DIRCLUS+1
+001300  1  68           		PLA
+001301  1  8D 41 07     		STA DIRCLUS
+001304  1  4C E3 0E     		JMP OPEN170
+001307  1  20 74 0D     CHADIR3A:	JSR FINDFIL1
+00130A  1  30 F0        		BMI CHADIR3B
+00130C  1               
+00130C  1  A0 1A        CHADIR1:	LDY #DCLUS
+00130E  1  B1 00        		LDA (FATPTRS),Y
+001310  1               ;		JSR PUTHEX
+001310  1  8D 41 07     		STA DIRCLUS
+001313  1  C8           		INY
+001314  1  B1 00        		LDA (FATPTRS),Y
+001316  1               ;		JSR PUTHEX
+001316  1  8D 42 07     		STA DIRCLUS+1
+001319  1               ;		JSR KBGETC
+001319  1               
+001319  1  AC 68 07     CHADIR4:	LDY SAVEY
+00131C  1  B1 24        CHADIR5:	lda_icbalz_y
+00131E  1               ;		LDA (ICBALZ),Y
+00131E  1  C9 2F        		CMP #'/'
+001320  1  D0 C0        		BNE CHADIR3
+001322  1  C8           		INY
+001323  1  4C 1C 13     		JMP CHADIR5
+001326  1               ;
+001326  1               ;
+001326  1               ;
+001326  1  A9 00        DELETE:		LDA #0
+001328  1  20 65 0D     		JSR GETFILE
+00132B  1  30 2D        		BMI DELETE9
+00132D  1               
+00132D  1  A5 00        DELETE2:	LDA FATPTRS
+00132F  1  48           		PHA
+001330  1  A5 01        		LDA FATPTRS+1
+001332  1  48           		PHA
+001333  1               
+001333  1  A0 1A        		LDY #DCLUS
+001335  1  B1 00        		LDA (FATPTRS),Y
+001337  1  AA           		TAX
+001338  1  C8           		INY
+001339  1  B1 00        		LDA (FATPTRS),Y
+00133B  1               
+00133B  1  A0 00        		LDY #0
+00133D  1  20 4A 0F     		JSR DELCLUS
+001340  1               
+001340  1  68           		PLA
+001341  1  85 01        		STA FATPTRS+1
+001343  1  68           		PLA
+001344  1  85 00        		STA FATPTRS
+001346  1               
+001346  1  A0 00        		LDY #DNAME
+001348  1  A9 E5        		LDA #$E5
+00134A  1  91 00        		STA (FATPTRS),Y
+00134C  1  8D 3D 07     		STA DDIRTY
+00134F  1               
+00134F  1  20 81 0D     		JSR NEXTFILE
+001352  1  10 D9        		BPL DELETE2
+001354  1               
+001354  1  20 70 18     		JSR WRITEFAT
+001357  1  20 BE 18     DELETE8:	JSR WRITESEC
+00135A  1               
+00135A  1  20 A9 0D     DELETE9:	JSR CLOSEFCB
+00135D  1               ;		JMP OK
+00135D  1               
+00135D  1  A0 01        OK:		LDY #1
+00135F  1  18           		CLC
+001360  1  60           NOTOK:		RTS
+001361  1               
+001361  1               ;IODUMP:		LDX ICIDNO
+001361  1               ;		LDY #0
+001361  1               ;IODUMP1:	LDA IOCB,X
+001361  1               ;		JSR PUTHEX
+001361  1               ;		INX
+001361  1               ;		INY
+001361  1               ;		CPY #16
+001361  1               ;		BNE IODUMP1
+001361  1               ;		LDA #$9B
+001361  1               ;		JSR PRINT
+001361  1               ;		LDY #EOF
+001361  1               ;		RTS
+001361  1               
+001361  1               ;
+001361  1               ;
+001361  1               ;
+001361  1  AD 81 07     OPENDIR:	LDA FSTRTCL
+001364  1  8D 91 07     		STA FCURCLUS
+001367  1  0D 82 07     		ORA FSTRTCL+1
+00136A  1  D0 06        		BNE OPENDIR1
+00136C  1               
+00136C  1  20 C2 13     		JSR CROOT
+00136F  1  4C 61 11     		JMP CHECKDIR
+001372  1               
+001372  1  AD 82 07     OPENDIR1:	LDA FSTRTCL+1
+001375  1  8D 92 07     		STA FCURCLUS+1
+001378  1  A9 00        		LDA #0
+00137A  1  A2 03        		LDX #3
+00137C  1  9D 8D 07     OPENDIR2:	STA FVAR32,X
+00137F  1  CA           		DEX
+001380  1  10 FA        		BPL OPENDIR2
+001382  1               
+001382  1               ;		LDA FSTRTCL
+001382  1               ;		JSR PUTHEX
+001382  1               ;		LDA FSTRTCL+1
+001382  1               ;		JSR PUTHEX
+001382  1               ;		JSR KBGETC
+001382  1               
+001382  1  20 71 15     		JSR FSEEK1
+001385  1  4C 61 11     		JMP CHECKDIR
+001388  1               ;
+001388  1               ;
+001388  1               ;
+001388  1               READDIR:	;lda FATPTRS+1
+001388  1               		;jsr PUTHEX
+001388  1               		;lda FATPTRS
+001388  1               		;jsr PUTHEX
+001388  1               		;lda #' '
+001388  1               		;jsr PRINT
+001388  1               
+001388  1  A0 00        		LDY #DNAME
+00138A  1  B1 00        		LDA (FATPTRS),Y
+00138C  1  F0 32        		BEQ READDIR9
+00138E  1               
+00138E  1  18           CDIR3:		CLC
+00138F  1  A5 00        		LDA FATPTRS
+001391  1  69 20        		ADC #32
+001393  1  85 00        		STA FATPTRS
+001395  1  A5 01        		LDA FATPTRS+1
+001397  1  69 00        		ADC #0
+001399  1  85 01        		STA FATPTRS+1
+00139B  1  C9 0B        		CMP #(>BUFFER)+2
+00139D  1  D0 1F        		BNE READDIR8		;OK => CLC,RTS
+00139F  1               
+00139F  1  AD 81 07     		LDA FSTRTCL
+0013A2  1  0D 82 07     		ORA FSTRTCL+1
+0013A5  1  F0 11        		BEQ CDIR4
+0013A7  1               
+0013A7  1  20 F0 14     		JSR INCSEC
+0013AA  1               
+0013AA  1               ;		LDA #'I
+0013AA  1               ;		JSR PRINT
+0013AA  1               ;		LDA FCURCLUS
+0013AA  1               ;		JSR PUTHEX
+0013AA  1               ;		LDA FCURCLUS+1
+0013AA  1               ;		JSR PUTHEX
+0013AA  1               
+0013AA  1  A9 FF        		LDA #$FF
+0013AC  1  CD 92 07     		CMP FCURCLUS+1
+0013AF  1  D0 0D        		BNE READDIR8
+0013B1  1  CD 91 07     		CMP FCURCLUS
+0013B4  1  D0 08        		BNE READDIR8
+0013B6  1  F0 08        		BEQ READDIR9
+0013B8  1               
+0013B8  1  20 79 14     CDIR4:		JSR INCSECTO
+0013BB  1  20 D3 13     		JSR CROOT2
+0013BE  1  18           READDIR8:	CLC
+0013BF  1  60           		RTS
+0013C0  1  38           READDIR9:	SEC
+0013C1  1  60           		RTS
+0013C2  1               ;
+0013C2  1               ;
+0013C2  1               ;
+0013C2  1  A2 03        CROOT:		LDX #3
+0013C4  1  BD 14 07     CROOT1:		LDA DIRBASE,X
+0013C7  1  95 43        		STA SECTOR,X
+0013C9  1  CA           		DEX
+0013CA  1  10 F8        		BPL CROOT1
+0013CC  1  E8           		INX
+0013CD  1  8E 81 07     		STX FSTRTCL
+0013D0  1  8E 82 07     		STX FSTRTCL+1
+0013D3  1  A9 00        CROOT2:		LDA #<BUFFER
+0013D5  1  85 00        		STA FATPTRS
+0013D7  1  A9 09        		LDA #>BUFFER
+0013D9  1  85 01        		STA FATPTRS+1
+0013DB  1  4C D8 18     		JMP READSEC
+0013DE  1               
+0013DE  1               CHECKLEN:
+0013DE  1               ;		LDX #3
+0013DE  1               ;CL1:		LDA FRPOS,X
+0013DE  1               ;		JSR PUTHEX
+0013DE  1               ;		DEX
+0013DE  1               ;		BPL CL1
+0013DE  1               ;		LDA #EOL
+0013DE  1               ;		JSR PRINT
+0013DE  1               
+0013DE  1  A2 03        		LDX #3
+0013E0  1  BD 89 07     CHECKL2:	LDA FRPOS,X
+0013E3  1  DD 83 07     		CMP FILELEN,X
+0013E6  1  90 03        		BCC CHECKL1
+0013E8  1  CA           		DEX
+0013E9  1  10 F5        		BPL CHECKL2
+0013EB  1  60           CHECKL1:	RTS
+0013EC  1               ;
+0013EC  1               ;
+0013EC  1               ;
+0013EC  1               READSLOW:
+0013EC  1               ;		BIT FBURST	;burst off?
+0013EC  1               ;		BMI READSLO1	;yes
+0013EC  1               ;		DEC FBURST	;turn it off
+0013EC  1               
+0013EC  1               ;		JSR READSEC	;read sector
+0013EC  1               
+0013EC  1               READSLO1:
+0013EC  1               ;		LDA FATPTRS
+0013EC  1               ;		JSR PUTHEX
+0013EC  1               ;		LDA FATPTRS+1
+0013EC  1               ;		JSR PUTHEX
+0013EC  1  A0 00        		LDY #0
+0013EE  1  B1 00        		LDA (FATPTRS),Y
+0013F0  1  85 2F        		STA CIOCHR
+0013F2  1               
+0013F2  1  20 66 14     		JSR INCRPOS
+0013F5  1  20 E4 14     		JSR INCPTR
+0013F8  1               
+0013F8  1               READBYT4:
+0013F8  1               ;		JSR CHECKLEN
+0013F8  1  A5 2F        		LDA CIOCHR
+0013FA  1               ;		BCS READBYT3
+0013FA  1  A0 01        READBYT5:	LDY #1
+0013FC  1  60           		RTS
+0013FD  1               ;READBYT3:	LDY #3
+0013FD  1               ;		RTS
+0013FD  1               
+0013FD  1  20 DE 13     READBYTE:	JSR CHECKLEN
+001400  1  90 03        		BCC READBYT1
+001402  1               ;		LDX ICIDNO
+001402  1               ;		LDA FRPOS
+001402  1               ;		JSR PUTHEX
+001402  1               ;		STA ICBLLZ
+001402  1               ;		STA ICBLL,X
+001402  1               ;		LDA FRPOS+1
+001402  1               ;		JSR PUTHEX
+001402  1               ;		STA ICBLHZ
+001402  1               ;		STA ICBLH,X
+001402  1               
+001402  1  A0 88        		LDY #EOF
+001404  1  60           		RTS
+001405  1               
+001405  1               READBYT1:
+001405  1  A4 00        		LDY FATPTRS	;FATPTRS must point to begin of buffer, check LO-byte=0
+001407  1  D0 E3        		BNE READSLOW
+001409  1               ;		TAY		;Y=0
+001409  1  A5 29        		LDA ICBLHZ	;still >= 512 bytes to be read?
+00140B  1  C9 02        		CMP #2
+00140D  1  90 DD        		BCC READSLOW
+00140F  1  A5 22        		LDA ICCOMZ	;only GETCHAR allowed
+001411  1  C9 07        		CMP #GETCHR
+001413  1  D0 D7        		BNE READSLOW
+001415  1  A5 01        		LDA FATPTRS+1
+001417  1  C9 09        		CMP #>BUFFER	;FATPTRS must point to begin of buffer
+001419  1  D0 D1        		BNE READSLOW
+00141B  1               
+00141B  1               ;		SEC		;still more than 512 bytes in the files available?
+00141B  1  AD 83 07     		LDA FILELEN	;filelen can't be greater then 64k
+00141E  1  ED 89 07     		SBC FRPOS
+001421  1  AD 84 07     		LDA FILELEN+1
+001424  1  ED 8A 07     		SBC FRPOS+1
+001427  1  C9 02        		CMP #2
+001429  1  90 C1        		BCC READSLOW
+00142B  1               
+00142B  1               ;		JSR IODUMP
+00142B  1               
+00142B  1               READFAST:
+00142B  1               ;		BIT FBURST	;Burst OFF?
+00142B  1               ;		BMI READFA2	;yes
+00142B  1               
+00142B  1               ;		STY FBURST	;Y=0
+00142B  1               
+00142B  1               ;		JSR INITLSEC
+00142B  1               
+00142B  1               ;		LDA ICBALZ
+00142B  1               ;		STA BUFADRL
+00142B  1               ;		LDA ICBAHZ
+00142B  1               ;		STA BUFADRH
+00142B  1               ;		JSR READSECF
+00142B  1               ;		LDA #<BUFFER
+00142B  1               ;		STA BUFADRL
+00142B  1               ;		LDA #>BUFFER
+00142B  1               ;		STA BUFADRH
+00142B  1               
+00142B  1               ;		INC ICBAHZ
+00142B  1               ;		LDY #$FF
+00142B  1               ;		LDA (ICBALZ),Y
+00142B  1               ;		JMP READFA3
+00142B  1               
+00142B  1  B9 00 09     READFA2:	LDA BUFFER,Y
+00142E  1  91 24        		sta_icbalz_y
+001430  1               ;		STA (ICBALZ),Y
+001430  1  88           		DEY
+001431  1  D0 F8        		BNE READFA2
+001433  1  E6 25        		INC ICBAHZ
+001435  1               	.IF PLATFORM=0
+001435  1               		bne READFA1
+001435  1               		inc ICBABZ
+001435  1               	.ENDIF
+001435  1  B9 00 0A     READFA1:	LDA BUFFER+$100,Y
+001438  1  91 24        		sta_icbalz_y
+00143A  1               ;		STA (ICBALZ),Y
+00143A  1  C8           		INY
+00143B  1  D0 F8        		BNE READFA1
+00143D  1               
+00143D  1  85 2F        READFA3:	STA CIOCHR
+00143F  1  E6 25        		INC ICBAHZ
+001441  1               	.IF PLATFORM=0
+001441  1               		bne READFA3A
+001441  1               		inc ICBABZ
+001441  1               	.ENDIF
+001441  1               
+001441  1               READFA3A:
+001441  1               	.IF PLATFORM=0
+001441  1               		lda ICBLHZ
+001441  1               		bne READFA3B
+001441  1               		dec ICBLBZ
+001441  1               READFA3B:	dec ICBLHZ
+001441  1               		bne READFA3C
+001441  1               		dec ICBLBZ
+001441  1               READFA3C:	dec ICBLHZ
+001441  1               	.ELSE
+001441  1  C6 29        		DEC ICBLHZ
+001443  1  C6 29        		DEC ICBLHZ
+001445  1               	.ENDIF
+001445  1  20 6B 14     		JSR INCRPOS2
+001448  1  20 6B 14     		JSR INCRPOS2
+00144B  1               
+00144B  1  20 F0 14     		JSR INCSEC
+00144E  1               
+00144E  1  A5 29        		LDA ICBLHZ
+001450  1  05 28        		ORA ICBLLZ
+001452  1               	.IF PLATFORM=0
+001452  1               		ora ICBLBZ
+001452  1               	.ENDIF
+001452  1  F0 03        		BEQ READFA4
+001454  1  4C FD 13     		JMP READBYTE
+001457  1               
+001457  1  E6 28        READFA4:	INC ICBLLZ	;set buffer length to 1
+001459  1               
+001459  1  A5 24        		LDA ICBALZ	;decrement buffer address
+00145B  1  D0 02        		BNE READFA5
+00145D  1               
+00145D  1               	.IF PLATFORM=0
+00145D  1               		lda ICBAHZ
+00145D  1               		bne READFA6
+00145D  1               		dec ICBABZ
+00145D  1               	.ENDIF
+00145D  1               
+00145D  1  C6 25        READFA6:	DEC ICBAHZ
+00145F  1  C6 24        READFA5:	DEC ICBALZ
+001461  1  A5 2F        		LDA CIOCHR
+001463  1  4C FA 13     		JMP READBYT5	;exit success, Y=1
+001466  1               
+001466  1               
+001466  1  EE 89 07     INCRPOS:	INC FRPOS
+001469  1  D0 0D        		BNE INCRPOS1
+00146B  1  EE 8A 07     INCRPOS2:	INC FRPOS+1
+00146E  1  D0 08        		BNE INCRPOS1
+001470  1  EE 8B 07     		INC FRPOS+2
+001473  1  D0 03        		BNE INCRPOS1
+001475  1  EE 8C 07     		INC FRPOS+3
+001478  1  60           INCRPOS1:	RTS
+001479  1               
+001479  1               
+001479  1  A2 00        INCSECTO:	ldx #0
+00147B  1  F6 43        INCSECTO2:	inc SECTOR,x
+00147D  1  D0 05        		bne INCSECT1
+00147F  1  E8           		inx
+001480  1  E0 04        		cpx #4
+001482  1  D0 F7        		bne INCSECTO2
+001484  1  60           INCSECT1:	rts
+001485  1               
+001485  1               ;
+001485  1               ; convert 32 bit number to 10-byte text
+001485  1               ;
+001485  1  A9 00        BIN2DEC:	LDA #0			;clear 5-byte BCD (=10 nibbles)
+001487  1  A2 04        		LDX #4
+001489  1  9D 2C 07     BIN2DEC1:	STA BCD,X
+00148C  1  CA           		DEX
+00148D  1  10 FA        		BPL BIN2DEC1
+00148F  1               
+00148F  1  A2 20        		LDX #32
+001491  1  F8           		SED
+001492  1  0E 28 07     BIN2DEC2:	ASL BIN
+001495  1  2E 29 07     		ROL BIN+1
+001498  1  2E 2A 07     		ROL BIN+2
+00149B  1  2E 2B 07     		ROL BIN+3
+00149E  1               
+00149E  1  A0 05        		LDY #5
+0014A0  1  B9 2B 07     BIN2DEC3:	LDA BCD-1,Y
+0014A3  1  79 2B 07     		ADC BCD-1,Y
+0014A6  1  99 2B 07     		STA BCD-1,Y
+0014A9  1  88           		DEY
+0014AA  1  D0 F4        		BNE BIN2DEC3
+0014AC  1               
+0014AC  1  CA           		DEX
+0014AD  1  D0 E3        		BNE BIN2DEC2
+0014AF  1               
+0014AF  1  D8           		CLD
+0014B0  1  8C 4E 07     		STY NODISPL		;X, Y = 0
+0014B3  1               
+0014B3  1  BD 2C 07     BIN2DEC4:	LDA BCD,X
+0014B6  1  4A           		LSR
+0014B7  1  4A           		LSR
+0014B8  1  4A           		LSR
+0014B9  1  4A           		LSR
+0014BA  1  20 CB 14     		JSR BIN2INC
+0014BD  1  BD 2C 07     		LDA BCD,X
+0014C0  1  29 0F        		AND #15
+0014C2  1  20 CB 14     		JSR BIN2INC
+0014C5  1  E8           		INX
+0014C6  1  E0 05        		CPX #5
+0014C8  1  D0 E9        		BNE BIN2DEC4
+0014CA  1  60           		RTS
+0014CB  1               
+0014CB  1  D0 0D        BIN2INC:	BNE BIN2INC1		; no '0' => print it?
+0014CD  1  2C 4E 07     		BIT NODISPL		; print if nodisplay negativ
+0014D0  1  30 0B        		BMI BIN2INC2
+0014D2  1  C0 09        		CPY #9			; print last digit in any case
+0014D4  1  F0 07        		BEQ BIN2INC2
+0014D6  1  A9 20        		LDA #32			; else print space
+0014D8  1  D0 05        		BNE BIN2INC3
+0014DA  1               
+0014DA  1  CE 4E 07     BIN2INC1:	DEC NODISPL
+0014DD  1  49 30        BIN2INC2:	EOR #'0'
+0014DF  1  99 31 07     BIN2INC3:	STA DECIMAL,Y
+0014E2  1  C8           		INY
+0014E3  1  60           		RTS
+0014E4  1               
+0014E4  1               
+0014E4  1               
+0014E4  1  E6 00        INCPTR:		INC FATPTRS				;increment buffer-pointer
+0014E6  1  D0 2F        		BNE INCPTR9				;if not >= Buffer+$200
+0014E8  1  E6 01        		INC FATPTRS+1				;nothing else to do
+0014EA  1  A5 01        		LDA FATPTRS+1
+0014EC  1  C9 0B        		CMP #(>BUFFER)+2
+0014EE  1  D0 27        		BNE INCPTR9
+0014F0  1               ;
+0014F0  1               ; READ NEXT SECTOR
+0014F0  1               ;
+0014F0  1  EE 95 07     INCSEC:		INC FCURSEC				;otherwise point to next sector
+0014F3  1  AD 95 07     		LDA FCURSEC
+0014F6  1  CD 00 07     		CMP SECCLUS
+0014F9  1  F0 06        		BEQ INCSEC3				;new cluster necessary!
+0014FB  1               
+0014FB  1  20 79 14     		JSR INCSECTO				;just increment sector
+0014FE  1  4C 3F 15     		JMP INCPTR8				;reset buffer-ptr and read-sector
+001501  1               
+001501  1               ;
+001501  1               ; READ NEXT CLUSTER
+001501  1               ;
+001501  1  A9 00        INCSEC3:	LDA #0					;reset current sector in file
+001503  1  8D 95 07     		STA FCURSEC
+001506  1               
+001506  1  20 5C 17     		JSR GETNEXTC				;get next cluster in AX and FCURCLUS
+001509  1               
+001509  1               	.IF PLATFORM = 4
+001509  1  C9 0F        		CMP #$0F				;FAT-12 END-Marker = $FF0
+00150B  1               	.ELSE
+00150B  1               		CMP #$FF
+00150B  1               	.ENDIF
+00150B  1  D0 2F        		BNE INCSEC5
+00150D  1  E0 FF        		CPX #$FF
+00150F  1  D0 2B        		BNE INCSEC5				;not end of clusters
+001511  1               
+001511  1               ;		TAY					;?
+001511  1  A5 2A        		LDA ICAX1Z				;READ ACCESS?
+001513  1  29 08        		AND #8
+001515  1  D0 01        		BNE INCSEC1				;no, acquire new cluster
+001517  1  60           INCPTR9:	RTS
+001518  1               
+001518  1  20 9D 17     INCSEC1:	JSR CHAINCLU				;add a new cluster
+00151B  1               
+00151B  1  AD AD 07     		LDA DIRFILE				;Skip if not
+00151E  1  C9 02        		CMP #2					;GET FREE DIR
+001520  1  D0 1A        		BNE INCSEC5				;
+001522  1               
+001522  1  20 10 17     		JSR CLU2SEC				;otherwise clear sectors in new cluster
+001525  1               
+001525  1  AD 00 07     		LDA SECCLUS
+001528  1  8D 95 07     		STA FCURSEC
+00152B  1               
+00152B  1  20 D8 18     INCSEC2:	JSR READSEC
+00152E  1  20 4A 15     		JSR CLEARBUF
+001531  1  20 BE 18     		JSR WRITESEC
+001534  1               
+001534  1  20 79 14     		JSR INCSECTO
+001537  1               
+001537  1  CE 95 07     		DEC FCURSEC
+00153A  1  D0 EF        		BNE INCSEC2
+00153C  1               
+00153C  1  20 10 17     INCSEC5:	JSR CLU2SEC				;computer sector
+00153F  1  A9 00        INCPTR8:	LDA #0					;reset buffer pointer
+001541  1  85 00        		STA FATPTRS
+001543  1  A9 09        		LDA #>BUFFER
+001545  1  85 01        		STA FATPTRS+1
+001547  1               
+001547  1  4C D8 18     		JMP READSEC				;read sector
+00154A  1               
+00154A  1               ;
+00154A  1               ;
+00154A  1               ;
+00154A  1  A9 00        CLEARBUF:	LDA #0
+00154C  1  AA           		TAX
+00154D  1  9D 00 09     CLEARBU1:	STA BUFFER,X
+001550  1  9D 00 0A     		STA BUFFER+$100,X
+001553  1  E8           		INX
+001554  1  D0 F7        		BNE CLEARBU1
+001556  1  EE 3D 07     		INC DDIRTY				;mark dirty
+001559  1  60           		RTS
+00155A  1               
+00155A  1               ;-------------------------------------------------------------------------------
+00155A  1               ;
+00155A  1               ;-------------------------------------------------------------------------------
+00155A  1  AD 81 07     FSEEK:		LDA FSTRTCL
+00155D  1  8D 91 07     		STA FCURCLUS
+001560  1  AD 82 07     		LDA FSTRTCL+1
+001563  1  8D 92 07     		STA FCURCLUS+1
+001566  1               
+001566  1  A2 03        		LDX #3
+001568  1  BD 89 07     FSEEK2:		LDA FRPOS,X
+00156B  1  9D 8D 07     		STA FVAR32,X
+00156E  1  CA           		DEX
+00156F  1  10 F7        		BPL FSEEK2
+001571  1               
+001571  1  A9 8D        FSEEK1:		LDA #<FVAR32
+001573  1  85 02        		STA FATPTRD
+001575  1  A9 07        		LDA #>FVAR32
+001577  1  85 03        		STA FATPTRD+1
+001579  1  A9 24        		LDA #<BYTCLUS
+00157B  1  85 00        		STA FATPTRS
+00157D  1  A9 07        		LDA #>BYTCLUS
+00157F  1  85 01        		STA FATPTRS+1
+001581  1               
+001581  1  20 7E 19     		JSR CMP32	; FATPTRD < FATPTRS?
+001584  1  90 29        		BCC FSEEKS	; ja
+001586  1               
+001586  1  20 6F 19     		JSR SBC32
+001589  1               
+001589  1  AD 91 07     		LDA FCURCLUS
+00158C  1  48           		PHA
+00158D  1  AD 92 07     		LDA FCURCLUS+1
+001590  1  48           		PHA
+001591  1  20 5C 17     		JSR GETNEXTC
+001594  1               
+001594  1  C9 FF        		CMP #$FF
+001596  1  D0 12        		BNE FSEEK3
+001598  1  E0 FF        		CPX #$FF
+00159A  1  D0 0E        		BNE FSEEK3
+00159C  1               
+00159C  1  68           		PLA
+00159D  1  8D 92 07     		STA FCURCLUS+1
+0015A0  1  68           		PLA
+0015A1  1  8D 91 07     		STA FCURCLUS
+0015A4  1  20 9D 17     		JSR CHAINCLU
+0015A7  1  4C 71 15     		JMP FSEEK1
+0015AA  1               
+0015AA  1  68           FSEEK3:		PLA
+0015AB  1  68           		PLA
+0015AC  1  4C 71 15     		JMP FSEEK1
+0015AF  1               
+0015AF  1               ;
+0015AF  1               ; INSIDE CLUSTER
+0015AF  1               ; SECTOR+OFFSET
+0015AF  1               ;
+0015AF  1  A9 00        FSEEKS:		LDA #0
+0015B1  1  8D 95 07     		STA FCURSEC
+0015B4  1  20 10 17     		JSR CLU2SEC
+0015B7  1               
+0015B7  1               ;		jsr DUMPSEC
+0015B7  1               
+0015B7  1  AD 8E 07     		LDA FVAR32+1
+0015BA  1  4A           		LSR
+0015BB  1  8D 95 07     		STA FCURSEC
+0015BE  1  18           		CLC
+0015BF  1  65 44        		ADC SECTOR+1
+0015C1  1  85 44        		STA SECTOR+1
+0015C3  1  90 06        		BCC FSEEKS1
+0015C5  1  E6 45        		INC SECTOR+2
+0015C7  1  D0 02        		BNE FSEEKS1
+0015C9  1  E6 46        		INC SECTOR+3
+0015CB  1               
+0015CB  1               ;		jsr DUMPSEC
+0015CB  1               
+0015CB  1               
+0015CB  1  AD 8E 07     FSEEKS1:	LDA FVAR32+1
+0015CE  1  29 01        		AND #1
+0015D0  1  18           		CLC
+0015D1  1  69 09        		ADC #>BUFFER
+0015D3  1  85 01        		STA FATPTRS+1
+0015D5  1  AD 8D 07     		LDA FVAR32
+0015D8  1  85 00        		STA FATPTRS
+0015DA  1               
+0015DA  1               ;		jsr DUMPSEC
+0015DA  1               ;		JSR SEC2FSEC
+0015DA  1               
+0015DA  1  20 D8 18     		JSR READSEC
+0015DD  1               ;		JSR KBGETC
+0015DD  1  60           		RTS
+0015DE  1               
+0015DE  1               
+0015DE  1               ;-------------------------------------------------------------------------------
+0015DE  1               ; LASTSEC = $FFFFFFFF
+0015DE  1               ;-------------------------------------------------------------------------------
+0015DE  1  A9 FF        INITLSEC:	LDA #$FF
+0015E0  1  A2 03        		LDX #3
+0015E2  1  9D 1C 07     INITLSEC1:	STA LASTSEC,X
+0015E5  1  CA           		DEX
+0015E6  1  10 FA        		BPL INITLSEC1
+0015E8  1  60           		RTS
+0015E9  1               
+0015E9  1               ;-------------------------------------------------------------------------------
+0015E9  1               ; LASTFAT = $FFFFFFFF
+0015E9  1               ;-------------------------------------------------------------------------------
+0015E9  1  A9 FF        INITFSEC:	LDA #$FF
+0015EB  1  A2 03        		LDX #3
+0015ED  1  9D 20 07     INITFSEC1:	STA LASTFAT,X
+0015F0  1  CA           		DEX
+0015F1  1  10 FA        		BPL INITFSEC1
+0015F3  1  60           		RTS
+0015F4  1               
+0015F4  1               ;-------------------------------------------------------------------------------
+0015F4  1               ; Init all variables
+0015F4  1               ; read boot sector
+0015F4  1               ; compute FATBASE, DIRBASE, DATBASE, etc.
+0015F4  1               ;-------------------------------------------------------------------------------
+0015F4  1               INITFAT:
+0015F4  1  A9 00        		LDA #0					;clear 512-byte of variables
+0015F6  1  AA           		TAX
+0015F7  1  9D 00 07     VCLEAR:		STA V,X
+0015FA  1  9D 00 08     		STA V+256,X
+0015FD  1  CA           		DEX
+0015FE  1  D0 F7        		BNE VCLEAR
+001600  1               
+001600  1               ;		LDA #0					;initialise offset
+001600  1  AA           VSET2:		TAX					;into FCB
+001601  1  9D 01 08     		STA FCB0+1,X				;0, 64, 128, 192
+001604  1  18           		CLC
+001605  1  69 40        		ADC #64
+001607  1  D0 F7        		BNE VSET2
+001609  1               
+001609  1  20 DE 15     		JSR INITLSEC				;set LASTSEC to $FFFFFFFF
+00160C  1  20 E9 15     		JSR INITFSEC				;set LASTFAT to $FFFFFFFF
+00160F  1               
+00160F  1  8D 7F 07     		STA FIOCBNR				;all $FF
+001612  1  8D 00 08     		STA FCB0
+001615  1  8D 40 08     		STA FCB1
+001618  1  8D 80 08     		STA FCB2
+00161B  1  8D C0 08     		STA FCB3
+00161E  1               
+00161E  1               
+00161E  1  A9 00        		LDA #<BUFFER
+001620  1  8D 3F 07     		STA BUFADRL
+001623  1  A9 09        		LDA #>BUFFER
+001625  1  8D 40 07     		STA BUFADRH
+001628  1               
+001628  1  A9 0F        		LDA #VALIDNA2-VALIDCHA-2
+00162A  1  8D 69 07     		STA VALIDS
+00162D  1               
+00162D  1               ;		LDA #'/
+00162D  1               ;		STA PATH
+00162D  1               
+00162D  1  20 C4 16     		JSR READBOOT				;read boot sector
+001630  1               
+001630  1               ;	.IF PLATFORM <> 4
+001630  1               ;		CMP #3
+001630  1               ;		BNE DIE
+001630  1               ;	.ELSE
+001630  1               ;		CMP #2
+001630  1               ;		BNE DIE
+001630  1               ;	.ENDIF
+001630  1               
+001630  1               ;		JSR DUMPBUF
+001630  1               
+001630  1  A2 0A        		LDX #10					;copy 11 important bytes / values
+001632  1  BD 0D 09     VCOPY:		LDA BUFFER+13,X				;from boot sector
+001635  1  9D 00 07     		STA V,X					;to FAT variables
+001638  1  CA           		DEX					;(SECCLUS to SECSFAT)
+001639  1  10 F7        		BPL VCOPY
+00163B  1               
+00163B  1  AD 00 07     		LDA SECCLUS				;bytes per cluster as 32-byte word
+00163E  1  0A           		ASL
+00163F  1  8D 25 07     		STA BYTCLUS+1
+001642  1               
+001642  1  18           		CLC					;compute FATBASE, DIRBASE
+001643  1  A5 43        		LDA SECTOR
+001645  1  6D 01 07     		ADC RESSEC
+001648  1  8D 10 07     		STA FATBASE
+00164B  1  8D 14 07     		STA DIRBASE
+00164E  1  A5 44        		LDA SECTOR+1
+001650  1  6D 02 07     		ADC RESSEC+1
+001653  1  8D 11 07     		STA FATBASE+1
+001656  1  8D 15 07     		STA DIRBASE+1
+001659  1  90 0E        		BCC DIRBAS
+00165B  1  EE 12 07     		INC FATBASE+2
+00165E  1  EE 16 07     		INC DIRBASE+2
+001661  1  D0 06        		BNE DIRBAS
+001663  1  EE 13 07     		INC FATBASE+3
+001666  1  EE 17 07     		INC DIRBASE+3
+001669  1               
+001669  1  18           DIRBAS:		CLC
+00166A  1  AE 03 07     		LDX NUMFATS
+00166D  1  AD 14 07     DIRBAS2:	LDA DIRBASE
+001670  1  6D 09 07     		ADC SECSFAT
+001673  1  8D 14 07     		STA DIRBASE
+001676  1  AD 15 07     		LDA DIRBASE+1
+001679  1  6D 0A 07     		ADC SECSFAT+1
+00167C  1  8D 15 07     		STA DIRBASE+1
+00167F  1  90 08        		BCC DIRBAS1
+001681  1  EE 16 07     		INC DIRBASE+2
+001684  1  D0 03        		BNE DIRBAS1
+001686  1  EE 17 07     		INC DIRBASE+3
+001689  1  CA           DIRBAS1:	DEX
+00168A  1  D0 E1        		BNE DIRBAS2
+00168C  1               
+00168C  1               ;		LDY #<DIRBASE	;COPY DIRBASE
+00168C  1               ;		LDA #>DIRBASE	;TO SECTOR
+00168C  1               ;		JSR COPY32
+00168C  1               
+00168C  1  AD 04 07     		LDA NUMDIR	;#ROOTDIRS
+00168F  1  8D 18 07     		STA DATBASE
+001692  1  AD 05 07     		LDA NUMDIR+1
+001695  1  8D 19 07     		STA DATBASE+1
+001698  1               
+001698  1  A2 04        		LDX #4		; DATBASE = NUMDIR / 16
+00169A  1  4E 19 07     DATBAS1:	LSR DATBASE+1
+00169D  1  6E 18 07     		ROR DATBASE
+0016A0  1  CA           		DEX
+0016A1  1  D0 F7        		BNE DATBAS1
+0016A3  1               
+0016A3  1  18           		CLC		; DATBASE += DIRBASE
+0016A4  1  AD 18 07     		LDA DATBASE
+0016A7  1  6D 14 07     		ADC DIRBASE
+0016AA  1  8D 18 07     		STA DATBASE
+0016AD  1  AD 19 07     		LDA DATBASE+1
+0016B0  1  6D 15 07     		ADC DIRBASE+1
+0016B3  1  8D 19 07     		STA DATBASE+1
+0016B6  1               
+0016B6  1               ;		jsr PRINTINFO
+0016B6  1               
+0016B6  1  18           		CLC
+0016B7  1  60           		RTS
+0016B8  1               
+0016B8  1               ;-------------------------------------------------------------------------------
+0016B8  1               ; get stuck if FAT16/12 can't be found
+0016B8  1               ;-------------------------------------------------------------------------------
+0016B8  1               DIE:	.IF PLATFORM <= 1
+0016B8  1               		SEC
+0016B8  1               		RTS
+0016B8  1               	.ELSE
+0016B8  1  20 AA 19     		jsr PUTHEX
+0016BB  1  AD 03 03     		lda DSTATS
+0016BE  1  20 AA 19     		jsr PUTHEX
+0016C1  1  4C C1 16     DIE1:		jmp DIE1
+0016C4  1               	.ENDIF
+0016C4  1               
+0016C4  1               ;-------------------------------------------------------------------------------
+0016C4  1               ; read first sector and see if MBR (FAT-16) or boot-sector (FAT-12)
+0016C4  1               ;-------------------------------------------------------------------------------
+0016C4  1               READBOOT:
+0016C4  1  20 98 19     		JSR CLEARSEC
+0016C7  1               
+0016C7  1  20 D8 18     		JSR READSEC				;read first sector
+0016CA  1  30 0B        		BMI READB2				;Fat16, SD-Card: MBR; Fat12 Bootsec
+0016CC  1               
+0016CC  1  20 E4 16     		JSR CHECKFAT
+0016CF  1  F0 07        		BEQ READB3				;Fat16 MBR
+0016D1  1  C9 03        		CMP #3
+0016D3  1  D0 02        		BNE READB2
+0016D5  1  A9 00        READB1:		LDA #0
+0016D7  1  60           READB2:		RTS
+0016D8  1               
+0016D8  1  A0 C6        READB3:		LDY #<(BUFFER+PART1)
+0016DA  1  A9 0A        		LDA #>(BUFFER+PART1)
+0016DC  1  20 8A 19     		JSR COPY32
+0016DF  1               
+0016DF  1  20 D8 18     		JSR READSEC
+0016E2  1  30 F3        		BMI READB2
+0016E4  1               ;-------------------------------------------------------------------------------
+0016E4  1               ; 0:FAT16 MBR
+0016E4  1               ; 1:NO BOOTSEC/MBR
+0016E4  1               ; 2:BOOTSEC, NO FAT16/Harddrive
+0016E4  1               ; 3:BOOTSEC, FAT16
+0016E4  1               ;-------------------------------------------------------------------------------
+0016E4  1  AD FE 0A     CHECKFAT:	LDA BUFFER+$1FE
+0016E7  1  C9 55        		CMP #$55				;check sec+$1fe = 55AA
+0016E9  1  D0 1F        		BNE CHKFATEX1
+0016EB  1  AD FF 0A     		LDA BUFFER+$1FF
+0016EE  1  C9 AA        		CMP #$AA
+0016F0  1  D0 18        		BNE CHKFATEX1				;no boot sector
+0016F2  1  AD C2 0A     		LDA BUFFER+$1C2				;check in MBR
+0016F5  1  C9 0E        		CMP #$0E				;0E Partition
+0016F7  1  F0 14        		BEQ CHKFATEX0
+0016F9  1  C9 06        		CMP #$06				;06 Partition
+0016FB  1  F0 10        		BEQ CHKFATEX0
+0016FD  1  AD 15 09     		LDA BUFFER+$15
+001700  1  C9 F8        		CMP #$F8				;Hard Drive
+001702  1  D0 03        		BNE CHKFATEX2
+001704  1               ;		LDA BUFFER+$37
+001704  1               ;		CMP #'A'
+001704  1               ;		BNE CHKFAT4
+001704  1  A9 03        CHKFATEX3:	LDA #3
+001706  1  60           		RTS
+001707  1  A9 02        CHKFATEX2:	LDA #2
+001709  1  60           		RTS
+00170A  1  A9 01        CHKFATEX1:	LDA #1
+00170C  1  60           		RTS
+00170D  1  A9 00        CHKFATEX0:	LDA #0
+00170F  1  60           		RTS
+001710  1               
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               ; CLUSTER related routines
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               
+001710  1               
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               ; compute absoute data-sector-number from FCURCLUS and FCURSEC
+001710  1               ;-------------------------------------------------------------------------------
+001710  1               CLU2SEC:
+001710  1  20 98 19     		JSR CLEARSEC				;clear SECTOR
+001713  1  38           		SEC					;subtract 2 from current cluster
+001714  1  AD 91 07     		LDA FCURCLUS
+001717  1  E9 02        		SBC #2
+001719  1  85 43        		STA SECTOR
+00171B  1  AD 92 07     		LDA FCURCLUS+1
+00171E  1  E9 00        		SBC #0
+001720  1  85 44        		STA SECTOR+1
+001722  1               
+001722  1  AD 00 07     		LDA SECCLUS				;multiply by sec per clusters
+001725  1  4A           CL2SEC2:	LSR
+001726  1  F0 09        		BEQ CL2SEC1
+001728  1  06 43        		ASL SECTOR
+00172A  1  26 44        		ROL SECTOR+1
+00172C  1  26 45        		ROL SECTOR+2
+00172E  1  4C 25 17     		JMP CL2SEC2
+001731  1               
+001731  1  18           CL2SEC1:	clc					;add Data-Base
+001732  1  A2 00        		ldx #0
+001734  1  B5 43        CL2SEC1A:	lda SECTOR, x
+001736  1  7D 18 07     		adc DATBASE, x
+001739  1  95 43        		sta SECTOR, x
+00173B  1  E8           		inx
+00173C  1  E0 04        		cpx #4
+00173E  1  90 F4        		bcc CL2SEC1A
+001740  1               
+001740  1  18           		clc					;add file current sector
+001741  1  A5 43        		lda SECTOR
+001743  1  6D 95 07     		adc FCURSEC
+001746  1  85 43        		sta SECTOR
+001748  1  90 0A        		bcc CL2SEC1B
+00174A  1  E6 44        		inc SECTOR+1
+00174C  1  D0 06        		bne CL2SEC1B
+00174E  1  E6 45        		inc SECTOR+2
+001750  1  D0 02        		bne CL2SEC1B
+001752  1  E6 46        		inc SECTOR+3
+001754  1  60           CL2SEC1B:	rts
+001755  1               
+001755  1               ;-------------------------------------------------------------------------------
+001755  1               ; load AX with FCURCLUS
+001755  1               ;-------------------------------------------------------------------------------
+001755  1  AE 91 07     LOAXCCLUS:	ldx FCURCLUS
+001758  1  AD 92 07     		lda FCURCLUS+1
+00175B  1  60           		rts
+00175C  1               
+00175C  1               ;-------------------------------------------------------------------------------
+00175C  1               ; get next cluster from FCURCLUS and store in FCURCLUS
+00175C  1               ;-------------------------------------------------------------------------------
+00175C  1               GETNEXTC:
+00175C  1  20 55 17     		jsr LOAXCCLUS
+00175F  1  20 2C 18     		jsr GETCLUST
+001762  1               
+001762  1               ;-------------------------------------------------------------------------------
+001762  1               ; load AX with FCURCLUS
+001762  1               ;-------------------------------------------------------------------------------
+001762  1  8E 91 07     STAXCCLUS:	stx FCURCLUS
+001765  1  8D 92 07     		sta FCURCLUS+1
+001768  1  60           		rts
+001769  1               
+001769  1               ;-------------------------------------------------------------------------------
+001769  1               ; load AX with NEWCLUS
+001769  1               ;-------------------------------------------------------------------------------
+001769  1  AE 3B 07     LOAXNCLUS:	ldx NEWCLUS
+00176C  1  AD 3C 07     		lda NEWCLUS+1
+00176F  1  60           		rts
+001770  1               
+001770  1               
+001770  1               ;-------------------------------------------------------------------------------
+001770  1               ; GET FREE CLUSTER SEARCHING FROM
+001770  1               ;
+001770  1               ; X:CLUST:L
+001770  1               ; A:CLUST:H
+001770  1               ;
+001770  1               ; AND INITIALIZE TO $FFFF
+001770  1               ;
+001770  1               ; FATPTRD	: POINTER TO PAGE OF FAT-BUF
+001770  1               ; Y		: POINTS TO CLUSTER IN PAGE
+001770  1               ; NEWCLUS	: HOLDS NEW CLUSTER-NO.
+001770  1               ;-------------------------------------------------------------------------------
+001770  1  8E 3B 07     GETFCLUS:	stx NEWCLUS
+001773  1  8D 3C 07     		sta NEWCLUS+1
+001776  1               
+001776  1  20 69 17     GETFCLUS2:	jsr LOAXNCLUS
+001779  1  20 2C 18     		jsr GETCLUST
+00177C  1               
+00177C  1  A8           		tay					;high-byte zero?
+00177D  1  D0 13        		bne GETFCLUS1				;no, increment
+00177F  1  8A           		txa
+001780  1  D0 10        		bne GETFCLUS1				;no, increment
+001782  1               
+001782  1  20 69 17     		jsr LOAXNCLUS
+001785  1               
+001785  1               	.IF PLATFORM = 4
+001785  1  A0 0F        		ldy #$0f
+001787  1               	.ELSE
+001787  1               		ldy #$ff
+001787  1               	.ENDIF
+001787  1  8C 3C 07     		sty NEWCLUS+1
+00178A  1  A0 FF        		ldy #$ff
+00178C  1  8C 3B 07     		sty NEWCLUS
+00178F  1  4C AF 17     		jmp PUTCLUST
+001792  1               
+001792  1  EE 3B 07     GETFCLUS1:	inc NEWCLUS
+001795  1  D0 DF        		bne GETFCLUS2
+001797  1  EE 3C 07     		inc NEWCLUS+1
+00179A  1  4C 76 17     		jmp GETFCLUS2
+00179D  1               
+00179D  1               ;-------------------------------------------------------------------------------
+00179D  1               ; GET FREE CLUSTER
+00179D  1               ; INIT TO $FFFF
+00179D  1               ; CHAIN WITH CURCLUS
+00179D  1               ;-------------------------------------------------------------------------------
+00179D  1  20 55 17     CHAINCLU:	jsr LOAXCCLUS				;load AX with FCURCLUS
+0017A0  1  20 70 17     		jsr GETFCLUS				;get free cluster in NEWCLUST
+0017A3  1  20 55 17     		jsr LOAXCCLUS				;load ax again run into PUTCLUST
+0017A6  1  20 AF 17     		jsr PUTCLUST				;put NEWCLUST in current cluster
+0017A9  1  20 69 17     		jsr LOAXNCLUS
+0017AC  1  4C 62 17     		jmp STAXCCLUS
+0017AF  1               ;-------------------------------------------------------------------------------
+0017AF  1               ; Put cluster-number in NEWCLUS to cluster pointed to by
+0017AF  1               ; X:	CLUST:L
+0017AF  1               ; A:	CLUST:H
+0017AF  1               ; even		odd
+0017AF  1               ; 03 21		06 54
+0017AF  1               ; Byte	Byte	Byte
+0017AF  1               ; NN	NN	NN
+0017AF  1               ; 21	43	65
+0017AF  1               ;-------------------------------------------------------------------------------
+0017AF  1               PUTCLUST:
+0017AF  1               	.IF PLATFORM = 4
+0017AF  1               
+0017AF  1  20 FB 17     		jsr COMPFAT12
+0017B2  1               
+0017B2  1  A9 FF        		lda #$FF
+0017B4  1  8D 3E 07     		sta FDIRTY
+0017B7  1               
+0017B7  1  B0 12        		bcs PUTCODD
+0017B9  1               
+0017B9  1  AD 3B 07     		lda NEWCLUS
+0017BC  1  91 00        		sta (FATPTRS), y
+0017BE  1  20 54 18     		jsr INCFATBYTE
+0017C1  1  B1 00        		lda (FATPTRS), y
+0017C3  1  29 F0        		and #240				;mask out lower nibble
+0017C5  1  0D 3C 07     		ora NEWCLUS+1				;or-in lower nibble
+0017C8  1  91 00        		sta (FATPTRS), y
+0017CA  1  60           		rts
+0017CB  1               
+0017CB  1  B1 00        PUTCODD:	lda (FATPTRS), y
+0017CD  1  29 0F        		and #15					;mask out high nibble
+0017CF  1  91 00        		sta (FATPTRS), y
+0017D1  1  AD 3B 07     		lda NEWCLUS
+0017D4  1  0A           		asl
+0017D5  1  0A           		asl
+0017D6  1  0A           		asl
+0017D7  1  0A           		asl
+0017D8  1  11 00        		ora (FATPTRS), y			;or in low nibble
+0017DA  1  91 00        		sta (FATPTRS), y
+0017DC  1               
+0017DC  1  20 54 18     		jsr INCFATBYTE
+0017DF  1               
+0017DF  1  AE 3B 07     		ldx NEWCLUS
+0017E2  1  AD 3C 07     		lda NEWCLUS + 1
+0017E5  1  0E 3B 07     		asl NEWCLUS
+0017E8  1  2A           		rol
+0017E9  1  0E 3B 07     		asl NEWCLUS
+0017EC  1  2A           		rol
+0017ED  1  0E 3B 07     		asl NEWCLUS
+0017F0  1  2A           		rol
+0017F1  1  0E 3B 07     		asl NEWCLUS
+0017F4  1  2A           		rol
+0017F5  1  91 00        		sta (FATPTRS), y
+0017F7  1  8E 3B 07     		stx NEWCLUS
+0017FA  1  60           		rts
+0017FB  1               ;-------------------------------------------------------------------------------
+0017FB  1               ; Point FATPTRS to cluster in AX and read FAT sector if needed
+0017FB  1               ; Carry holds even/odd cluster
+0017FB  1               ; Y: 0
+0017FB  1               ;-------------------------------------------------------------------------------
+0017FB  1  A8           COMPFAT12:	tay
+0017FC  1  86 43        		stx SECTOR
+0017FE  1  84 44        		sty SECTOR+1
+001800  1  06 43        		asl SECTOR
+001802  1  26 44        		rol SECTOR+1				;clust * 2
+001804  1               ;		clc					;high byte always zero
+001804  1  8A           		txa
+001805  1  48           		pha					;remember cluster low-byte
+001806  1  65 43        		adc SECTOR				;* 3
+001808  1  85 00        		sta FATPTRS
+00180A  1  98           		tya
+00180B  1  65 44        		adc SECTOR+1
+00180D  1  4A           		lsr					;/ 2
+00180E  1  66 00        		ror FATPTRS				;/ 2
+001810  1  4A           		lsr
+001811  1  18           		clc
+001812  1  6D 10 07     		adc FATBASE
+001815  1  AA           		tax
+001816  1  20 98 19     		jsr CLEARSEC				;AY used
+001819  1  86 43        		stx SECTOR
+00181B  1               
+00181B  1  20 8A 18     		jsr READFAT
+00181E  1               
+00181E  1  18           		clc
+00181F  1  A5 01        		lda FATPTRS+1
+001821  1  29 01        		and #1
+001823  1  69 0B        		adc #>FATBUF
+001825  1  85 01        		sta FATPTRS+1
+001827  1               
+001827  1  A0 00        		ldy #0
+001829  1  68           		pla					;even / odd cluster
+00182A  1  4A           		lsr
+00182B  1  60           		rts
+00182C  1               	.ELSE
+00182C  1               		jsr COMPFAT16
+00182C  1               		lda NEWCLUST
+00182C  1               		sta (FATPTRS),Y
+00182C  1               		iny
+00182C  1               		lda NEWCLUST+1
+00182C  1               		sta (FATPTRS),Y
+00182C  1               		rts
+00182C  1               
+00182C  1               COMPFAT16:
+00182C  1               		CLC
+00182C  1               		STA SECTOR
+00182C  1               		ADC FATBASE
+00182C  1               		STA SECTOR
+00182C  1               		LDA FATBASE+1
+00182C  1               		ADC #0
+00182C  1               		STA SECTOR+1
+00182C  1               		LDA FATBASE+2
+00182C  1               		ADC #0
+00182C  1               		STA SECTOR+2
+00182C  1               		LDA FATBASE+3
+00182C  1               		ADC #0
+00182C  1               		STA SECTOR+3
+00182C  1               		TXA					;save X
+00182C  1               		PHA
+00182C  1               		JSR READFAT
+00182C  1               
+00182C  1               		LDA #<FATBUF
+00182C  1               		STA FATPTRS
+00182C  1               		LDA #>FATBUF
+00182C  1               		STA FATPTRS+1
+00182C  1               
+00182C  1               		PLA					;get former X
+00182C  1               		ASL
+00182C  1               		BCC COMPFAT16A
+00182C  1               		INC FATPTRS+1
+00182C  1               COMPFAT16A:	tay
+00182C  1               		rts
+00182C  1               	.ENDIF
+00182C  1               ;-------------------------------------------------------------------------------
+00182C  1               ; X:	CLUST:L
+00182C  1               ; A:	CLUST:H
+00182C  1               ; returns cluster-number stored at cluster AX in AX
+00182C  1               ;-------------------------------------------------------------------------------
+00182C  1               GETCLUST:
+00182C  1               
+00182C  1               	.IF PLATFORM = 4
+00182C  1               ;-------------------------------------------------------------------------------
+00182C  1               ; GETCLUST for FAT-12:
+00182C  1               ;	FATSEC = (A*256+X) * 3 / 2 (1.5)
+00182C  1               ;-------------------------------------------------------------------------------
+00182C  1  20 FB 17     		jsr COMPFAT12
+00182F  1  B0 0B        		bcs GETCODD
+001831  1               
+001831  1  B1 00        GETCEVEN:	lda (FATPTRS), y
+001833  1  20 54 18     		jsr INCFATBYTE
+001836  1  AA           		tax
+001837  1  B1 00        GETCEVEN1:	lda (FATPTRS), y
+001839  1  29 0F        		and #15
+00183B  1               
+00183B  1               GETCLUST1:
+00183B  1               ;		jsr PUTHEX
+00183B  1               ;		pha
+00183B  1               ;		txa
+00183B  1               ;		jsr PUTHEX
+00183B  1               ;		jsr NEWLINE
+00183B  1               ;		pla
+00183B  1  60           		rts
+00183C  1               
+00183C  1  B1 00        GETCODD:	lda (FATPTRS),y
+00183E  1  85 43        		sta SECTOR
+001840  1  20 54 18     		jsr INCFATBYTE
+001843  1  B1 00        		lda (FATPTRS),y
+001845  1  4A           		lsr
+001846  1  66 43        		ror SECTOR
+001848  1  4A           		lsr
+001849  1  66 43        		ror SECTOR
+00184B  1  4A           		lsr
+00184C  1  66 43        		ror SECTOR
+00184E  1  4A           		lsr
+00184F  1  66 43        		ror SECTOR
+001851  1  A6 43        		ldx SECTOR
+001853  1  60           		rts
+001854  1               ;		jmp GETCLUST1				;debug
+001854  1               
+001854  1               
+001854  1  E6 00        INCFATBYTE:	inc FATPTRS
+001856  1  D0 17        		bne INCFATBYTE1				;1ff?
+001858  1               
+001858  1  48           		pha
+001859  1  A5 01        		lda FATPTRS+1
+00185B  1  29 01        		and #1
+00185D  1  F0 0D        		beq INCFATBYTE2
+00185F  1               
+00185F  1  E6 43        		inc SECTOR
+001861  1  20 8A 18     		jsr READFAT
+001864  1  A0 00        		ldy #0
+001866  1  84 00        		sty FATPTRS
+001868  1  A9 0A        		lda #>FATBUF - 1
+00186A  1  85 01        		sta FATPTRS + 1
+00186C  1  68           INCFATBYTE2:	pla
+00186D  1  E6 01        		inc FATPTRS+1
+00186F  1  60           INCFATBYTE1:	rts
+001870  1               
+001870  1               	.ELSE
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               ; GETCLUST for FAT-16:
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               		jsr COMPFAT16
+001870  1               		LDA (FATPTRS),Y
+001870  1               		TAX
+001870  1               		INY
+001870  1               		LDA (FATPTRS),Y
+001870  1               		RTS
+001870  1               	.ENDIF
+001870  1               
+001870  1               
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               ; DATA and FAT sector SIO routines
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               
+001870  1               
+001870  1               ;-------------------------------------------------------------------------------
+001870  1               ; write FAT if FDIRTY <> 0
+001870  1               ;-------------------------------------------------------------------------------
+001870  1  AD 3E 07     WRITEFAT:	LDA FDIRTY
+001873  1  F0 09        		BEQ WRITEFA9
+001875  1               
+001875  1  A2 20        		LDX #<LASTFAT
+001877  1  A9 07        		LDA #>LASTFAT
+001879  1  20 45 19     		JSR SETSEC				;set sector-number in floppy/drive
+00187C  1  10 01        		BPL WRITEFA1
+00187E  1  60           WRITEFA9:	RTS					;error
+00187F  1               
+00187F  1  20 3A 19     WRITEFA1:	JSR SETWRITE				;set DSTATS and DCOMND
+001882  1  A9 00        		LDA #0					;reset dirty
+001884  1  8D 3E 07     		STA FDIRTY
+001887  1  4C B1 18     		JMP RWFAT				;execute SIO command
+00188A  1               
+00188A  1               ;-------------------------------------------------------------------------------
+00188A  1               ; read a FAT sector.
+00188A  1               ; if new sector to read, check if old one is dirty
+00188A  1               ; write old FAT sector if dirty
+00188A  1               ;-------------------------------------------------------------------------------
+00188A  1  A2 03        READFAT:	LDX #3
+00188C  1  B5 43        READFAT3:	LDA SECTOR,X				;compare SECTOR with LASTFAT
+00188E  1  DD 20 07     		CMP LASTFAT,X
+001891  1  D0 04        		BNE READFAT2
+001893  1  CA           		DEX
+001894  1  10 F6        		BPL READFAT3				;if equal
+001896  1  60           		RTS					;sector already read, nothing to do
+001897  1               
+001897  1  20 70 18     READFAT2:	JSR WRITEFAT				;write old sector if dirty
+00189A  1               
+00189A  1  A2 03        		LDX #3					;copy sector to LASTFAT
+00189C  1  B5 43        READFAT4:	LDA SECTOR,X
+00189E  1  9D 20 07     		STA LASTFAT,X
+0018A1  1  CA           		DEX
+0018A2  1  10 F8        		BPL READFAT4
+0018A4  1               
+0018A4  1  A2 43        		LDX #<SECTOR				;set sector to floppy/drive
+0018A6  1  A9 00        		LDA #>SECTOR
+0018A8  1  20 45 19     		JSR SETSEC
+0018AB  1  10 01        		BPL READFAT1
+0018AD  1  60           		RTS					;error
+0018AE  1               
+0018AE  1  20 2F 19     READFAT1:	JSR SETREAD				;set DSTATS and DCOMND
+0018B1  1  A9 00        RWFAT:		LDA #<FATBUF
+0018B3  1  8D 04 03     		STA DBUFLO
+0018B6  1  A9 0B        		LDA #>FATBUF
+0018B8  1  8D 05 03     		STA DBUFLO+1
+0018BB  1  4C 22 19     		JMP RWSEC1
+0018BE  1               
+0018BE  1               ;-------------------------------------------------------------------------------
+0018BE  1               ; write a Data sector if DDIRTY <> 0
+0018BE  1               ;-------------------------------------------------------------------------------
+0018BE  1  AD 3D 07     WRITESEC:	LDA DDIRTY
+0018C1  1  F0 09        		BEQ WRITESE9
+0018C3  1               
+0018C3  1  A2 1C        		LDX #<LASTSEC
+0018C5  1  A9 07        		LDA #>LASTSEC
+0018C7  1  20 45 19     		JSR SETSEC
+0018CA  1  10 01        		BPL WRITESE1
+0018CC  1  60           WRITESE9:	RTS
+0018CD  1               
+0018CD  1  20 3A 19     WRITESE1:	JSR SETWRITE
+0018D0  1  A9 00        		LDA #0
+0018D2  1  8D 3D 07     		STA DDIRTY
+0018D5  1  4C 16 19     		JMP RWSEC
+0018D8  1               
+0018D8  1               ;-------------------------------------------------------------------------------
+0018D8  1               ; read a data sector, save old sector if dirty
+0018D8  1               ;-------------------------------------------------------------------------------
+0018D8  1  A2 03        READSEC:	LDX #3
+0018DA  1  B5 43        READSEC3:	LDA SECTOR,X
+0018DC  1  DD 1C 07     		CMP LASTSEC,X
+0018DF  1  D0 04        		BNE READSEC2
+0018E1  1  CA           		DEX
+0018E2  1  10 F6        		BPL READSEC3
+0018E4  1  60           		RTS
+0018E5  1               
+0018E5  1  20 BE 18     READSEC2:	JSR WRITESEC
+0018E8  1               
+0018E8  1  A2 03        		LDX #3					;set LASTSEC TO SECTOR
+0018EA  1  B5 43        READSEC4:	LDA SECTOR,X
+0018EC  1  9D 1C 07     		STA LASTSEC,X
+0018EF  1  CA           		DEX
+0018F0  1  10 F8        		BPL READSEC4
+0018F2  1               
+0018F2  1  A2 00        READSECF:	LDX #0
+0018F4  1  AD 87 07     		LDA FWBURST				;write Burst active?
+0018F7  1  8E 87 07     		STX FWBURST
+0018FA  1  F0 0D        		BEQ READSECF1				;no ->
+0018FC  1  A5 29        		LDA ICBLHZ				;still $200 to read?
+0018FE  1  C9 02        		CMP #2
+001900  1  90 07        		BCC READSECF1				;no ->
+001902  1  D0 04        		BNE READSECF2				;greater, no read
+001904  1  A5 28        		LDA ICBLLZ				;we have substracted only $1ff
+001906  1  F0 01        		BEQ READSECF1				;so, if lenght-LO = 0 then end is reached.
+001908  1  60           READSECF2:	RTS
+001909  1               
+001909  1  A2 43        READSECF1:	LDX #<SECTOR
+00190B  1  A9 00        		LDA #>SECTOR
+00190D  1  20 45 19     		JSR SETSEC
+001910  1  10 01        		BPL READSEC1
+001912  1  60           		RTS
+001913  1               
+001913  1  20 2F 19     READSEC1:	JSR SETREAD
+001916  1               
+001916  1  AD 3F 07     RWSEC:		LDA BUFADRL
+001919  1  8D 04 03     		STA DBUFLO
+00191C  1  AD 40 07     		LDA BUFADRH
+00191F  1  8D 05 03     		STA DBUFLO+1
+001922  1               
+001922  1               	.IF PLATFORM <= 1
+001922  1               RWSEC1:		LDX DBUFLO
+001922  1               		LDA DBUFLO+1
+001922  1               		CPY #$80		; $40 = read; $80 = write
+001922  1               		beq RWSEC2
+001922  1               		jmp readSector
+001922  1               RWSEC2:		jmp writeSector
+001922  1               	.ELSE
+001922  1  A9 00        RWSEC1:		LDA #0			; 512 bytes
+001924  1  8D 08 03     		STA DBYTLO
+001927  1  A9 02        		LDA #2
+001929  1  8D 09 03     		STA DBYTLO+1
+00192C  1  4C 59 E4     		JMP SIOV
+00192F  1               	.ENDIF
+00192F  1               
+00192F  1               SETREAD:
+00192F  1               	.IF PLATFORM <= 1
+00192F  1               		LDY #$40
+00192F  1               	.ELSE
+00192F  1  A9 40        		LDA #$40
+001931  1  8D 03 03     		STA DSTATS
+001934  1  A9 52        		LDA #'R'
+001936  1  8D 02 03     		STA DCOMND
+001939  1               	.ENDIF
+001939  1  60           		RTS
+00193A  1               
+00193A  1               SETWRITE:
+00193A  1               	.IF PLATFORM <= 1
+00193A  1               		LDY #$80
+00193A  1               	.ELSE
+00193A  1  A9 80        		LDA #$80
+00193C  1  8D 03 03     		STA DSTATS
+00193F  1  A9 50        		LDA #'P'
+001941  1  8D 02 03     		STA DCOMND
+001944  1               	.ENDIF
+001944  1  60           		RTS
+001945  1               ;
+001945  1               ;
+001945  1               ;
+001945  1               	.IF PLATFORM <= 1
+001945  1               SETSEC:		jmp setSector
+001945  1               	.ELSE
+001945  1  8E 04 03     SETSEC:		STX DBUFLO
+001948  1  8D 05 03     		STA DBUFLO+1
+00194B  1  A9 31        		LDA #$31
+00194D  1  8D 00 03     		STA DDEVIC
+001950  1  A9 02        		LDA #2
+001952  1  8D 01 03     		STA DUNIT
+001955  1               
+001955  1  20 3A 19     		JSR SETWRITE
+001958  1               
+001958  1  A9 04        		LDA #4
+00195A  1  8D 08 03     		STA DBYTLO
+00195D  1  0A           		ASL
+00195E  1  8D 06 03     		STA DTIMLO
+001961  1  A9 00        		LDA #0
+001963  1  8D 09 03     		STA DBYTLO+1
+001966  1  8D 0A 03     		STA DAUX1
+001969  1  8D 0B 03     		STA DAUX2
+00196C  1  4C 59 E4     		JMP SIOV
+00196F  1               
+00196F  1               	.ENDIF
+00196F  1               
+00196F  1               
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1               ; debug and helper routines
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1               
+00196F  1               
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1               ; subtract 32-byte word: FATPTRD = FATPTRD - FATPTRS
+00196F  1               ;-------------------------------------------------------------------------------
+00196F  1  A0 00        SBC32:		LDY #0
+001971  1  38           		SEC
+001972  1  B1 02        SBC32A:		LDA (FATPTRD),Y
+001974  1  F1 00        		SBC (FATPTRS),Y
+001976  1  91 02        		STA (FATPTRD),Y
+001978  1  C8           		INY
+001979  1  C0 04        		CPY #4
+00197B  1  90 F5        		BCC SBC32A
+00197D  1  60           		RTS
+00197E  1               
+00197E  1               ;-------------------------------------------------------------------------------
+00197E  1               ; FATPTRD - FATPTRS (compare)
+00197E  1               ;-------------------------------------------------------------------------------
+00197E  1  A0 03        CMP32:		LDY #3
+001980  1  B1 02        CMP32A:		LDA (FATPTRD),Y
+001982  1  D1 00        		CMP (FATPTRS),Y
+001984  1  D0 03        		BNE CMP32B
+001986  1  88           		DEY
+001987  1  10 F7        		BPL CMP32A
+001989  1  60           CMP32B:		RTS
+00198A  1               
+00198A  1               ;-------------------------------------------------------------------------------
+00198A  1               ; copy from PTR in AY from FATPTRS to FATPTRD
+00198A  1               ;-------------------------------------------------------------------------------
+00198A  1  84 00        COPY32:		STY FATPTRS
+00198C  1  85 01        		STA FATPTRS+1
+00198E  1  A0 03        COPY32B:	LDY #3
+001990  1  B1 00        COPY32A:	LDA (FATPTRS),Y
+001992  1  91 02        		STA (FATPTRD),Y
+001994  1  88           		DEY
+001995  1  10 F9        		BPL COPY32A
+001997  1  60           		RTS
+001998  1               
+001998  1  A0 43        CLEARSEC:	LDY #<SECTOR				;Clear SECTOR via
+00199A  1  A9 00        		LDA #>SECTOR				;FATPTRD
+00199C  1               
+00199C  1               ;-------------------------------------------------------------------------------
+00199C  1               ; clear long-word AY -> FATPTRD
+00199C  1               ;-------------------------------------------------------------------------------
+00199C  1  84 02        CLEAR32:	STY FATPTRD
+00199E  1  85 03        		STA FATPTRD+1
+0019A0  1  A9 00        		LDA #0
+0019A2  1  A0 03        FILL32:		LDY #3
+0019A4  1  91 02        CL32A:		STA (FATPTRD),Y
+0019A6  1  88           		DEY
+0019A7  1  10 FB        		BPL CL32A
+0019A9  1  60           		RTS
+0019AA  1               
+0019AA  1               ;-------------------------------------------------------------------------------
+0019AA  1               ; print A hexadecimal, retain AXY
+0019AA  1               ;-------------------------------------------------------------------------------
+0019AA  1  48           PUTHEX:		PHA
+0019AB  1  8A           		TXA
+0019AC  1  48           		PHA
+0019AD  1  98           		TYA
+0019AE  1  48           		PHA
+0019AF  1               
+0019AF  1               	.IF PLATFORM = 2 || PLATFORM = 4
+0019AF  1  BA           		TSX
+0019B0  1  BD 03 01     		LDA $103,X
+0019B3  1               	.ELSE
+0019B3  1               		LDA 3,s
+0019B3  1               	.ENDIF
+0019B3  1  48           		PHA
+0019B4  1  4A           		LSR
+0019B5  1  4A           		LSR
+0019B6  1  4A           		LSR
+0019B7  1  4A           		LSR
+0019B8  1  20 C7 19     		JSR PUTNIB
+0019BB  1               
+0019BB  1  68           		PLA
+0019BC  1  29 0F        		AND #15
+0019BE  1  20 C7 19     		JSR PUTNIB
+0019C1  1               
+0019C1  1  68           		PLA
+0019C2  1  A8           		TAY
+0019C3  1  68           		PLA
+0019C4  1  AA           		TAX
+0019C5  1  68           		PLA
+0019C6  1  60           		RTS
+0019C7  1               
+0019C7  1  C9 0A        PUTNIB:		CMP #10
+0019C9  1  90 02        		BCC PUTNIB1
+0019CB  1  69 06        		ADC #6
+0019CD  1  69 30        PUTNIB1:	ADC #48
+0019CF  1  4C 1A 1A     		JMP EOUTCH
+0019D2  1               
+0019D2  1  48           PRINT:		PHA
+0019D3  1  8A           		TXA
+0019D4  1  48           		PHA
+0019D5  1  98           		TYA
+0019D6  1  48           		PHA
+0019D7  1               	.IF PLATFORM = 2 || PLATFORM = 4
+0019D7  1  BA           		TSX
+0019D8  1  BD 03 01     		LDA $103,X
+0019DB  1  C9 0A        		CMP #$0A
+0019DD  1  D0 02        		BNE PR1
+0019DF  1  A9 9B        		LDA #EOL
+0019E1  1               	.ELSE
+0019E1  1               		lda 3,s
+0019E1  1               	.ENDIF
+0019E1  1  20 1A 1A     PR1:		JSR EOUTCH
+0019E4  1  68           		PLA
+0019E5  1  A8           		TAY
+0019E6  1  68           		PLA
+0019E7  1  AA           		TAX
+0019E8  1  68           		PLA
+0019E9  1  60           		RTS
+0019EA  1               
+0019EA  1  48           SPACE:		pha
+0019EB  1  A9 20        		lda #32
+0019ED  1  D0 03        		bne NEWLINE1
+0019EF  1               
+0019EF  1  48           NEWLINE:	PHA
+0019F0  1  A9 9B        		LDA #EOL
+0019F2  1  20 D2 19     NEWLINE1:	JSR PRINT
+0019F5  1  68           		PLA
+0019F6  1  60           		RTS
+0019F7  1               ;
+0019F7  1               ;
+0019F7  1               ;
+0019F7  1  A8           PRINTSTR:	TAY
+0019F8  1  A5 00        		LDA FATPTRS
+0019FA  1  48           		PHA
+0019FB  1  A5 01        		LDA FATPTRS+1
+0019FD  1  48           		PHA
+0019FE  1               
+0019FE  1  86 00        		STX FATPTRS
+001A00  1  84 01        		STY FATPTRS+1
+001A02  1  A0 00        		LDY #0
+001A04  1  90 03        		BCC PRINTSTR2
+001A06  1               
+001A06  1  20 EF 19     		JSR NEWLINE
+001A09  1               
+001A09  1  B1 00        PRINTSTR2:	LDA (FATPTRS),Y
+001A0B  1  F0 06        		BEQ PRINTSTR1
+001A0D  1  20 D2 19     		JSR PRINT
+001A10  1  C8           		INY
+001A11  1  D0 F6        		BNE PRINTSTR2	;do not print more than 256 chars
+001A13  1  68           PRINTSTR1:	PLA
+001A14  1  85 01        		STA FATPTRS+1
+001A16  1  68           		PLA
+001A17  1  85 00        		STA FATPTRS
+001A19  1  60           		RTS
+001A1A  1               
+001A1A  1               	.IF DEBUG = 1
+001A1A  1               PRINTINFO:
+001A1A  1               	.IF PLATFORM = 2 || PLATFORM = 4
+001A1A  1               		LDA #4					;key still pressed
+001A1A  1               		BIT SKSTAT
+001A1A  1               		BNE PRINTINFO4				;no, leave
+001A1A  1               		LDA KBCODE				;help key?
+001A1A  1               		CMP #17
+001A1A  1               		BEQ PRINTINFO6				;yes print
+001A1A  1               PRINTINFO4:	RTS
+001A1A  1               	.ENDIF
+001A1A  1               
+001A1A  1               PRINTINFO6:	SEC
+001A1A  1               		LDX #<MSG0
+001A1A  1               		LDA #>MSG0
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDA SECCLUS
+001A1A  1               		JSR PUTHEX
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG1
+001A1A  1               		LDA #>MSG1
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDA RESSEC+1
+001A1A  1               		JSR PUTHEX
+001A1A  1               		LDA RESSEC
+001A1A  1               		JSR PUTHEX
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG2
+001A1A  1               		LDA #>MSG2
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDA NUMFATS
+001A1A  1               		JSR PUTHEX
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG3
+001A1A  1               		LDA #>MSG3
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDA NUMDIR+1
+001A1A  1               		JSR PUTHEX
+001A1A  1               		LDA NUMDIR
+001A1A  1               		JSR PUTHEX
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG4
+001A1A  1               		LDA #>MSG4
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDA SECSFAT+1
+001A1A  1               		JSR PUTHEX
+001A1A  1               		LDA SECSFAT
+001A1A  1               		JSR PUTHEX
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG5
+001A1A  1               		LDA #>MSG5
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDX #3
+001A1A  1               PRINTINFO7:	LDA SECTOR,X
+001A1A  1               		JSR PUTHEX
+001A1A  1               		DEX
+001A1A  1               		BPL PRINTINFO7
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG6
+001A1A  1               		LDA #>MSG6
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDX #3
+001A1A  1               PRINTINFO1:	LDA FATBASE,X
+001A1A  1               		JSR PUTHEX
+001A1A  1               		DEX
+001A1A  1               		BPL PRINTINFO1
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG7
+001A1A  1               		LDA #>MSG7
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDX #3
+001A1A  1               PRINTINFO2:	LDA DIRBASE,X
+001A1A  1               		JSR PUTHEX
+001A1A  1               		DEX
+001A1A  1               		BPL PRINTINFO2
+001A1A  1               
+001A1A  1               		SEC
+001A1A  1               		LDX #<MSG8
+001A1A  1               		LDA #>MSG8
+001A1A  1               		JSR PRINTSTR
+001A1A  1               		LDX #3
+001A1A  1               PRINTINFO3:	LDA DATBASE,X
+001A1A  1               		JSR PUTHEX
+001A1A  1               		DEX
+001A1A  1               		BPL PRINTINFO3
+001A1A  1               
+001A1A  1               	.IF PLATFORM = 2 || PLATFORM = 4
+001A1A  1               		LDA #4
+001A1A  1               PRINTINFO5:	BIT SKSTAT
+001A1A  1               		BEQ PRINTINFO5
+001A1A  1               	.ENDIF
+001A1A  1               
+001A1A  1               		JMP NEWLINE
+001A1A  1               
+001A1A  1               MSG0:		.byte "Sectors per cluster: $",0
+001A1A  1               MSG1:		.byte "Reserved sectors   : $",0
+001A1A  1               MSG2:		.byte "Number of FATs     : $",0
+001A1A  1               MSG3:		.byte "Number of root-entr: $",0
+001A1A  1               MSG4:		.byte "Sectors per FAT    : $",0
+001A1A  1               MSG5:		.byte "FAT-16 boot sector : $",0
+001A1A  1               MSG6:		.byte "FAT base           : $",0
+001A1A  1               MSG7:		.byte "DIR base           : $",0
+001A1A  1               MSG8:		.byte "DAT base           : $",0
+001A1A  1               
+001A1A  1               	.ENDIF
+001A1A  1               
+001A1A  1               ;-------------------------------------------------------------------------------
+001A1A  1               ; print character via Editor handler routine at $E406
+001A1A  1               ;-------------------------------------------------------------------------------
+001A1A  1  AA           EOUTCH:		TAX
+001A1B  1  AD 07 E4     		LDA EPB+1
+001A1E  1  48           		PHA
+001A1F  1  AD 06 E4     		LDA EPB
+001A22  1  48           		PHA
+001A23  1  8A           		TXA
+001A24  1  60           		RTS
+001A25  1               
+001A25  1               ;-------------------------------------------------------------------------------
+001A25  1               ; print SECTOR
+001A25  1               ;-------------------------------------------------------------------------------
+001A25  1  48           DUMPSEC:	pha
+001A26  1  8A           		txa
+001A27  1  48           		pha
+001A28  1  A2 03        		ldx #3
+001A2A  1  B5 43        DUMPSEC1:	lda SECTOR,x
+001A2C  1  20 AA 19     		jsr PUTHEX
+001A2F  1  CA           		dex
+001A30  1  10 F8        		bpl DUMPSEC1
+001A32  1  A9 9B        		lda #EOL
+001A34  1  20 D2 19     		jsr PRINT
+001A37  1  68           		pla
+001A38  1  AA           		tax
+001A39  1  68           		pla
+001A3A  1  60           		rts
+001A3B  1               
+001A3B  1               ;-------------------------------------------------------------------------------
+001A3B  1               ; DEBUG FATPTRS
+001A3B  1               ;-------------------------------------------------------------------------------
+001A3B  1               ;DUMPPTR:	LDA FATPTRS
+001A3B  1               ;		JSR PUTHEX
+001A3B  1               ;		LDA FATPTRS+1
+001A3B  1               ;		JMP PUTHEX
+001A3B  1               
+001A3B  1               ;DUMPBUF:	jsr DUMP256
+001A3B  1               ;		lda #4					;key still pressed
+001A3B  1               ;DUMPBUF3:	bit SKSTAT
+001A3B  1               ;		bne DUMPBUF3				;no
+001A3B  1               ;		inc DUMPBUF2+2
+001A3B  1               ;		jsr DUMP256
+001A3B  1               ;		dec DUMPBUF2+2
+001A3B  1               ;		lda #4					;key still pressed
+001A3B  1               ;DUMPBUF4:	bit SKSTAT
+001A3B  1               ;		bne DUMPBUF4				;no
+001A3B  1               ;		rts
+001A3B  1               ;
+001A3B  1               ;DUMP256:	ldx #0
+001A3B  1               ;DUMPBUF1:	txa
+001A3B  1               ;		and #15
+001A3B  1               ;		bne DUMPBUF2
+001A3B  1               ;		jsr NEWLINE
+001A3B  1               ;DUMPBUF2:	lda BUFFER, x
+001A3B  1               ;		jsr PUTHEX
+001A3B  1               ;		inx
+001A3B  1               ;		bne DUMPBUF1
+001A3B  1               ;		jmp NEWLINE
+001A3B  1               
+001A3B  1               
