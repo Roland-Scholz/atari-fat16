@@ -17,6 +17,7 @@ FATPTRD		= $0008
 FATPTRS		= $0000
 FATPTRD		= $0002
 SECTOR		= FMSZPG
+SHIFT		= FMSZPG+4
 	.ENDIF
 
 ;--------------------------------------------------------------
@@ -33,7 +34,7 @@ VBASE		= $400
 	.IF PLATFORM = 2 || PLATFORM = 4
 VBASE		= $700
 FATCODE		= VBASE+$600
-DUPCODE		= $1a40
+DUPCODE		= $1b00
 
 JSTARTUP	= FATCODE
 JPRINT		= FATCODE+3
@@ -85,7 +86,7 @@ BUFADRH		= V+64 		;1
 DIRCLUS		= V+65		;2
 DIRRENA		= V+67 		;11
 		
-NODISPL		= V+78 		;1
+NODISPL		= SHIFT		;V+78 		;1
 WILD		= V+79 		;1
 DIRLINE		= V+80 		;13
 DIRLENG		= V+93 		;10
@@ -107,6 +108,10 @@ JMPPTR		= V+125		;2-byte jmp address
 		
 F		= V+127
 		
+;-------------------------------------------------------------------------------
+; current File-Control-Block
+; is copied from FCB0-3
+;-------------------------------------------------------------------------------
 FIOCBNR		= F		;1-byte FCB is assigned to this IOCB
 FFCBOFF		= F+1		;1-byte Offset of this FCB from FCB0
 FSTRTCL		= F+2		;2-byte Start cluster of file
@@ -120,12 +125,18 @@ FCURSEC		= F+22		;1-byte current sector
 FCURPTR		= F+23 		;2-byte current pointer into sector buffer
 FSECTOR		= F+25 		;4-byte last sector read
 		
+;-------------------------------------------------------------------------------
+; Directory variables
+;-------------------------------------------------------------------------------
 DIRTEXT		= F+29		;11-byte directory text 8 + 3
 DIRPTR		= F+40		;2-byte pointer into directory sector
 DIRSEC		= F+42		;4-byte directory sector
 DIRFILE		= F+46		;1-byte dir or file to search for
 FBLKEND		= F+46
 
+;-------------------------------------------------------------------------------
+; space for 4 File-Control-Blocks
+;-------------------------------------------------------------------------------
 FCB0		= V+256
 FCB1		= FCB0+64
 FCB2		= FCB1+64
@@ -137,3 +148,8 @@ DATTRIB		= 11
 DCLUS		= $1A
 DLEN		= $1C
 PART1		= $1C6
+	.IF PLATFORM <> 4
+FATEND		= $FFFF
+	.ELSE
+FATEND		= $0FFF
+	.ENDIF
