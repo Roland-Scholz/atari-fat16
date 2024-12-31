@@ -5,4 +5,4 @@ FAT16 DOS for Atari 800XL/XE and homebrew-projects
 - PLATFORM = 1 : Homebrew Hardware (deprecated)
 - PLATFORM = 2 : Atari XL/XE
 - PLATFORM = 3 : ???
-
+- PLATFORM = 4 : FAT-12 for 1.44MB disks
