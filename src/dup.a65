@@ -2,18 +2,24 @@
 		.A8
 		.I8
 	.ENDIF
+
+	.IF PLATFORM = 2
 	
-	.IF PLATFORM = 2 || PLATFORM = 4
 		.include "fat16.inc"
 		.include "atarixl.inc"
+	.ENDIF 
+	
+	.IF PLATFORM = 2 || PLATFORM = 4
 
 FNAME		= $500
 FVEC		= $2E0
 FINIT		= $2E2
-
-		.ORG DUPCODE
 	.ENDIF
 
+	.IF PLATFORM = 2
+		.ORG DUPCODE
+	.ENDIF
+	
 	.IF PLATFORM = 3
 		.include "fat16.inc"
 		.include "homebrew.inc"
@@ -25,8 +31,8 @@ FINIT		= $2E2
 ;
 ;
 ;
-		JMP	DUPINIT
-		JMP	LOADFIL
+;		JMP	DUPINIT
+;		JMP	LOADFIL
 		
 DUPINIT:	LDA	#0
 		LDX	#31
@@ -179,7 +185,7 @@ LOAD:		JSR 	PRINTSPEC
 		JSR 	GETSTR
 		BMI 	ERR
 		JSR 	LOADFIL
-		BMI 	ERRPRT
+		BMI 	ERR
 		JMP 	MENU
 			
 	
@@ -256,6 +262,13 @@ FGOTO1:		BIT	SKSTAT
 		LDA	#SUCCES
 		RTS	
 
+;-------------------------------------------------------------------------------	
+; Binary Save
+; FROM
+;  TO
+; INTO (if zero use FROM/TO as is)
+; APPEND (Y/N)
+;-------------------------------------------------------------------------------	
 SAVE:		LDX	#<FROMSTR
 		LDA	#>FROMSTR
 		JSR	JPRINTSTR
@@ -280,61 +293,44 @@ SAVE1:		LDA	ASTART
 		JSR 	ENTERADR
 		CMP 	#'X'
 		BNE	SAVE2
-		JMP 	MENU
+SAVE6:		JMP 	MENU
 
-SAVE2:		LDA	ASTART
+SAVE2:		SEC					;copy ASTART TO FEND
+		LDA	ASTART				;FLENGTH = FEND - FSTART
 		STA	FEND
+		SBC	FSTART
+		STA	FLENGTH
 		LDA	ASTART+1
 		STA	FEND+1
-
-		LDA	FEND+1
-		CMP	FSTART+1
-		BCS	SAVE8
-		JMP	MENU
-SAVE8:		LDA	FEND
-		CMP	FSTART
-		BCS	SAVE9
-		JMP	MENU
-		
-SAVE9:		LDX	#$FF
+		SBC	FSTART+1
+		STA	FLENGTH+1
+				
+		LDX	#$FF				;init $FF $FF header
 		STX	FHEADER
 		STX	FHEADER+1
-		INX
-		STX	FDIFF
-		STX	FDIFF+1
 
-;		CLC
-;		LDX	#<INTOSTR
-;		LDA	#>INTOSTR
-;		JSR	JPRINTSTR
-;		JSR 	ENTERADR
-;		CMP	#'X'
-;		BEQ	SAVE10
-;		
-;		SEC
-;		LDA	FSTARTS
-;		SBC	ASTART
-;		STA	FDIFF
-;		LDA	FSTARTS+1
-;		SBC	ASTART+1
-;		STA	FDIFF+1
-;		
-;SAVE10:		SEC
-;		LDA	FSTARTS
-;		SBC	FDIFF
-;		STA	FSTART
-;		LDA	FSTARTS+1
-;		SBC	FDIFF+1
-;		STA	FSTART+1
-;		
-;		SEC
-;		LDA	FENDS
-;		SBC	FDIFF
-;		STA	FEND
-;		LDA	FENDS+1
-;		SBC	FDIFF+1
-;		STA	FEND+1
+		CLC
+		LDX	#<INTOSTR
+		LDA	#>INTOSTR
+		JSR	JPRINTSTR
+		JSR 	ENTERADR
+		CMP	#'X'
+		BEQ	SAVE6				;jump back to menu
+
+		LDA	ASTART				;is INTO zero, do nothing
+		ORA	ASTART+1
+		BEQ	SAVE9
 		
+		CLC					;otherwise
+		LDA	ASTART				;copy ASTART TO FSTART
+		STA	FSTART				;FEND = FSTART + FLENGTH
+		ADC	FLENGTH
+		STA	FEND
+		LDA	ASTART+1
+		STA	FSTART+1
+		ADC	FLENGTH+1
+		STA	FEND+1
+SAVE9:		
 	.IF PLATFORM <= 1
 		SEC
 	.ELSE
@@ -357,6 +353,8 @@ SAVE3:		JSR 	CORRNAME
 		JSR 	GETCHAR
 		TAY
 		JSR	JPRINT
+		
+;		JSR	DUPDEBUG
 		
 		LDX 	#$10
 		LDA 	#OPEN
@@ -390,42 +388,54 @@ SAVE4:		LDA	#PUTCHR
 		STA	ICBAL,X
 		LDA	FSTART+1
 		STA	ICBAH,X
-		SEC
-		LDA	FEND
-		SBC	FSTART
+		LDA	FLENGTH
 		STA	ICBLL,X
-		LDA	FEND+1
-		SBC	FSTART+1
-		STA	ICBLH,X
+		LDA	FLENGTH+1
+		STA	ICBLH,X					;ICBLL/H = FLENGTH + 1
 		INC	ICBLL,X
 		BNE	SAVE5
 		INC	ICBLH,X
 SAVE5:		JSR	CIOV
 SAVECLOSE:	JSR	FCLOSE
 		LDA	#4					;key still pressed
-SAVE11:		BIT	SKSTAT			
-		BEQ	SAVE11					;yes, loop
+SAVE8:		BIT	SKSTAT			
+		BEQ	SAVE8					;yes, loop
 		JMP	MENU
 		
 LABRTS:		RTS
 
 	.IF PLATFORM=99
-DEBUG:		LDA	ASTART
-		JSR	JPUTHEX
-		LDA	ASTART+1
-		JSR	JPUTHEX
-		LDA	AEND
-		JSR	JPUTHEX
-		LDA	AEND+1
-		JSR	JPUTHEX
-		LDA	FVEC
-		JSR	JPUTHEX
-		LDA	FVEC+1
-		JSR	JPUTHEX
-		LDA	FINIT
-		JSR	JPUTHEX
-		LDA	FINIT+1
-		JSR	JPUTHEX
+DUPDEBUG:	;LDA	ASTART
+		;JSR	JPUTHEX
+		;LDA	ASTART+1
+		;JSR	JPUTHEX
+		;LDA	AEND
+		;JSR	JPUTHEX
+		;LDA	AEND+1
+		;JSR	JPUTHEX
+		;LDA	FVEC
+		;JSR	JPUTHEX
+		;LDA	FVEC+1
+		;JSR	JPUTHEX
+		;LDA	FINIT
+		;JSR	JPUTHEX
+		;LDA	FINIT+1
+		;JSR	JPUTHEX
+		LDA	FSTART+1
+		JSR	PUTHEX
+		LDA	FSTART
+		JSR	PUTHEX
+		
+		LDA	FEND+1
+		JSR	PUTHEX
+		LDA	FEND
+		JSR	PUTHEX
+		
+		LDA	FLENGTH+1
+		JSR	PUTHEX
+		LDA	FLENGTH
+		JSR	PUTHEX
+
 		RTS
 	.ENDIF
 	
@@ -631,8 +641,8 @@ UPPEREND:	rts
 		
 		
 ;
-DUPMENU:	;.byte CLS
-		.byte EOL
+DUPMENU:	.byte CLS
+		;.byte EOL
 		.byte "FAT-1"
 	.IF PLATFORM = 4
 		.byte "2"
@@ -682,3 +692,4 @@ GOTOSTR:	.byte " - ADDRESS:"
 		.byte 0
 		
 KBDNAME:	.byte	"K:",EOL
+DUPEND		=	*

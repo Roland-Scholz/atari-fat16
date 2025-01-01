@@ -35,12 +35,22 @@ VBASE		= $400
 VBASE		= $700
 FATCODE		= VBASE+$600
 DUPCODE		= $1b00
-
+	.ENDIF
+	
+	.IF PLATFORM = 2
 JSTARTUP	= FATCODE
 JPRINT		= FATCODE+3
 JPUTHEX		= FATCODE+6
 JPRINTSTR	= FATCODE+9
 JINITFAT	= FATCODE+12
+	.ENDIF
+	
+	.IF PLATFORM = 4
+JSTARTUP	= STARTUP
+JPRINT		= PRINT
+JPUTHEX		= PUTHEX
+JPRINTSTR	= PRINTSTR
+JINITFAT	= INITFAT
 	.ENDIF
 
 V		= VBASE
@@ -100,13 +110,11 @@ CNT		= V+111		;1-byte adress enter counter DUP
 FHEADER		= V+112		;2-byte save file header ($FF)
 FSTART		= V+114		;2-byte file load start vector save
 FEND		= V+116		;2-byte file load end vector save
-FSTARTS		= V+118		;2-byte file load start vector save
-FENDS		= V+120		;2-byte file load end vector save
-FDIFF		= V+122		;2-byte "into" difference save
-JMPIND		= V+124		;1-byte holding $4C for JMP
-JMPPTR		= V+125		;2-byte jmp address
+FLENGTH		= V+118		;2-byte file length (for DUP save function)
+JMPIND		= V+120		;1-byte holding $4C for JMP
+JMPPTR		= V+121		;2-byte jmp address
 		
-F		= V+127
+F		= V+122
 		
 ;-------------------------------------------------------------------------------
 ; current File-Control-Block
@@ -132,7 +140,10 @@ DIRTEXT		= F+29		;11-byte directory text 8 + 3
 DIRPTR		= F+40		;2-byte pointer into directory sector
 DIRSEC		= F+42		;4-byte directory sector
 DIRFILE		= F+46		;1-byte dir or file to search for
-FBLKEND		= F+46
+FCBEND		= F+46		;FCB end-marker
+;-------------------------------------------------------------------------------
+; current FCB ends here
+;-------------------------------------------------------------------------------
 
 ;-------------------------------------------------------------------------------
 ; space for 4 File-Control-Blocks

@@ -7,8 +7,8 @@ call var-def.cmd
 call :compile_module fat16 0D00
 if NOT %result%==0 goto ende
 
-call :compile_module dup 1b00
-if NOT %result%==0 goto ende
+rem call :compile_module dup 1b00
+rem if NOT %result%==0 goto ende
 
 call :compile_module bootsec A800
 if NOT %result%==0 goto ende
