@@ -149,18 +149,8 @@ HANDTAB:	.word OPENCHA-1		; open channel
 		.word SPECIAL-1
 		rts
 		
-STATUSCHA       EQU OK
+STATUSCHA       = OK
 
-;-------------------------------------------------------------------------------
-; 		DIRFILE	0=ALL, 1=FILES, 2=FREE DIR,
-;			3=DIR
-;-------------------------------------------------------------------------------
-DIRSTART:	STA DIRFILE
-		LDA DIRCLUS
-		STA FSTRTCL
-		LDA DIRCLUS+1
-		STA FSTRTCL+1
-		RTS
 
 ;-------------------------------------------------------------------------------
 ; Check if second or third character is ":"
@@ -177,34 +167,7 @@ ERR165:		JSR CLOSEFCB
 		LDY #165
 CHECKHA1:	RTS
 
-;-------------------------------------------------------------------------------
-; Traverse directory and check if filename matches
-; 0=ALL, 1=FILES, 2=FREE DIR, 3=DIR
-;-------------------------------------------------------------------------------
-GETFILE:	jsr DIRSTART				;initialise DIRFILE, FSTRTCL
-		jsr CHECKHAN
-		bmi FINDFILEND
-		
-		iny					;Y = 2 or 3 from CHECKHAN 
-		jsr STR2RAW				;convert to 11 chars including * to ?
-		jsr OPENDIR				;position to first directory entry	
-		
-FINDFIL1:	ldy #10
-FINDFIL3:	lda DIRTEXT,Y
-		cmp #'?'				;matches any character
-		beq FINDFIL2
-		cmp (FATPTRS),Y				;matches character in directory?
-		beq FINDFIL2
 
-NEXTFILE:	jsr NEXTDIR				;if not, get next directory entry
-		bcc FINDFIL1				;check again
-		ldy #170				;no further entry, return EOF
-		rts
-
-FINDFIL2:	dey
-		bpl FINDFIL3
-		ldy #1
-FINDFILEND:	rts
 
 ;-------------------------------------------------------------------------------
 ;GET FCB Structure 0-3 
@@ -371,7 +334,8 @@ INITDIR:	LDX #2					;start at cluster #2
 		PHA
 	
 		JSR FINDFDIR                            ;get deleted ($E5) or free ($00) entry
-		BCS INITDIR1
+		BCS INITDIR1				;free entry found
+		
 		PLA					;no free dir, pop NEWCLUS and bail out of OPEN 
 		PLA
 		PLA
@@ -421,7 +385,7 @@ OPENCHA:	JSR OPENFCB
 		LDA ICAX1Z				;check if Open Directory is meant
 		AND #6
 		CMP #6
-		BNE OPENFILE
+		BNE OPENFILE				;OPENFILE OR OPENDI (fall through)
 
 ;-------------------------------------------------------------------------------
 ; open a directory
@@ -530,16 +494,6 @@ FREECLUS1:	jsr STAXCCLUS				;store AX in FCURCLUS
 ;
 ;
 ;
-FINDFDIR:	LDA #2
-		JSR DIRSTART
-		JSR OPENDIR
-		BCS FINDFDI1
-FINDFDI2:
-		JSR NEXTDIR
-		BCC FINDFDI2
-FINDFDI1:	RTS
-
-
 STR2RAW:	LDX #10			;fill DIRTEXT
 		LDA #32			;with spaces
 S2R12:		STA DIRTEXT,X
@@ -785,7 +739,7 @@ GETDIR:		;lda #'*'
 		LDY #EOF
 		RTS
 
-GETDIR6:	BNE GETDIR1		; Y > 0, get next Dir
+GETDIR6:	BNE GETDIR1		; Y > 0, get next byte of dirname
 
 		LDA #32			; Y==0, init DIRLINE
 		STA DIRLINE+8
@@ -824,22 +778,13 @@ GETDLEN:	LDA DECIMAL,Y
 
 GETDIR5:	LDY #0
 
-GETDIR1:	;lda #'1'
-		;jsr PRINT
-
-		INC HILF
+GETDIR1:	INC HILF
 		LDA DIRLINE,Y		;if Y points to end in DIRLINE
 		CMP #EOL		;read next dir entry
 		BNE GETDIR7
-
-		;lda #'2'
-		;jsr PRINT
 		
 		JSR NEXTFILE
 		BMI GETDIR9
-
-		;lda #'D'
-		;jsr PRINT
 		
 		LDY #0
 		STY HILF
@@ -847,10 +792,7 @@ GETDIR1:	;lda #'1'
 		LDA (FATPTRS),Y
 		BNE GETDIR8
 
-GETDIR9:	;lda #'9'
-		;jsr PRINT
-
-		DEY
+GETDIR9:	DEY
 		STY HILF		;NEG.
 
 GETDIR8:	LDA #EOL
@@ -861,104 +803,13 @@ GETDIR7:
 		BNE GETDIR2
 		LDA #'-'
 	.ENDIF
-GETDIR2:	;pha
-		;lda #'#'
-		;jsr PRINT
-		;pla
-		LDY #1
+GETDIR2:	LDY #1
 		RTS	
 
-;
-;	     1234567890123
-;DIRLINE	.byte "             "
-;DIRLENG	.byte "           "
-;	.byte EOL
 ;		      "0123456789"
 DIRTXT:		.byte "       DIR"
 ;
-NEXTDIR:	;lda #'N'
-		;jsr PRINT
-		
-		JSR READDIR
-		BCS NEXTDIR9	;No further Dir, RTS
 
-CHECKDIR:	
-;		jsr NEWLINE
-;		
-;		ldy #0
-;ch1:		lda (FATPTRS),Y
-;		jsr PUTHEX
-;		lda #' '
-;		jsr PRINT
-;		iny
-;		cpy #16
-;		bne ch1
-;		
-;		lda #' '
-;		jsr PRINT
-;		
-;		ldy #0
-;ch2:		lda (FATPTRS),Y
-;		jsr PRINT
-;		iny
-;		cpy #8
-;		bne ch2
-;		jsr NEWLINE
-		
-		LDY #DNAME
-		LDX DIRFILE
-		LDA (FATPTRS),Y
-	
-		CMP #DEL	;ENTRY
-		BNE NEXTDIR2	;DELETED?
-		CPX #2		;AND
-		BNE NEXTDIR	;DIRFILE=2
-		SEC		;END C=1
-		RTS
-
-NEXTDIR2:	;lda #'2'
-		;jsr PRINT
-		
-		LDY #DATTRIB
-		LDA (FATPTRS),Y	;SKIP
-		AND #8		;VOLUME
-		BNE NEXTDIR	;LABEL
-	
-		LDA (FATPTRS),Y	;DIR?
-		AND #16
-		CPX #0		;DIRFILE<>0
-		BEQ NEXTDIR3	;SKIP DIRS
-		CPX #3
-		BNE NEXTDIR4
-		TAX
-		BNE NEXTDIR3
-		BEQ NEXTDIR
-NEXTDIR4:
-		TAX
-		BNE NEXTDIR
-
-NEXTDIR3:
-;		LDY #0
-;ND1:		LDA (FATPTRS),Y
-;		JSR PRINT
-;		INY
-;		CPY #11
-;		BNE ND1
-
-		LDY #DLEN+3
-		LDX #3
-NEXTDIR1:
-		LDA (FATPTRS),Y
-		STA BIN,X
-		DEY
-		DEX
-		BPL NEXTDIR1
-
-		JSR BIN2DEC
-;		lda #'B'
-;		jsr PRINT		
-		CLC
-NEXTDIR9:	RTS
 
 
 SPECIAL:	LDA ICCOMZ
@@ -1250,26 +1101,122 @@ NOTOK:		RTS
 ;		LDY #EOF
 ;		RTS
 
-;
-;
-;
-OPENDIR:	jsr LOAXSCLUS                            ;Start cluster zero, then Root Dir
-                tay
-		ora FSTRTCL
-		BNE OPENDIR1
+
+
+;-------------------------------------------------------------------------------
+; Traverse directory and check if filename matches
+; 0=ALL, 1=FILES, 2=FREE DIR, 3=DIR
+;-------------------------------------------------------------------------------
+GETFILE:	jsr DIRSTART				;initialise DIRFILE, FSTRTCL from DIRCLUST
+		jsr CHECKHAN
+		bmi FINDFILEND
+		
+		iny					;Y = 2 or 3 from CHECKHAN 
+		jsr STR2RAW				;convert to 11 chars including * to ?
+		jsr OPENDIR				;position to first directory entry	
+		
+FINDFIL1:	ldy #10
+FINDFIL3:	lda DIRTEXT,Y
+		cmp #'?'				;matches any character
+		beq FINDFIL2
+		cmp (FATPTRS),Y				;matches character in directory?
+		beq FINDFIL2
+
+NEXTFILE:	jsr NEXTDIR				;if not, get next directory entry
+		bcc FINDFIL1				;check again
+		ldy #170				;no further entry, return EOF
+		rts
+
+FINDFIL2:	dey
+		bpl FINDFIL3
+		ldy #1
+FINDFILEND:	rts
+
+;-------------------------------------------------------------------------------
+; Find free directory entry starting from DIRCLUS
+;-------------------------------------------------------------------------------
+FINDFDIR:	LDA #2
+		JSR DIRSTART				;fall through to OPENDIR
+
+;-------------------------------------------------------------------------------
+; Positions directory-cursor to first entry that matches DIRTEXT via CHECKDIR
+; (file/dir or both) or first empty dir
+;-------------------------------------------------------------------------------
+OPENDIR:	jsr LOAXSCLUS                           ;Start cluster zero, then root Dir
+		bne OPENDIR1				;X (FSTRTCL) not zero
+		tay					;test A (FSTRTCL+1)
+		bne OPENDIR1
 	
 		JSR CROOT
+		JMP CHECKDIR				;loop until first fitting entry is found
+
+OPENDIR1:	jsr INCSEC4                             ;store AX, cluster2sec, reset ptr and readsec
 		JMP CHECKDIR
 
-OPENDIR1:	tya
-                jsr INCSEC4                             ;store AX, cluster2sec, reset ptr and readsec
-		JMP CHECKDIR
+
+;-------------------------------------------------------------------------------
+; positions to next available dir entry via READDIR and CHECKDIR
+;-------------------------------------------------------------------------------
+NEXTDIR:	jsr READDIR
+		bcs NEXTDIR9				;No further Dir, RTS
+			
+CHECKDIR:	ldx DIRFILE			
+
+		ldy #DNAME				;check first char of entry-name
+		lda (FATPTRS),Y		
+		cmp #DEL				;or entry deleted?
+		bne NEXTDIR2				;no
+		
+		cpx #2					;looking for free dir?
+		bne NEXTDIR				;no, loop
+CHECKDIR1:	;sec					;yes, end C=1, set by cpx and cmp
+		rts			
+			
+NEXTDIR2:	cpx #2					;not empty and looking for free dir?
+		beq NEXTDIR				;yes, loop
+		
+		ldy #DATTRIB			
+		lda (FATPTRS),Y				;SKIP
+		and #8					;VOLUME
+		bne NEXTDIR				;LABEL
+
+		txa					;DIRFILE = 0
+		beq NEXTDIR3				;file/dir found
+		
+		lda (FATPTRS),Y				;DIR?
+		and #16			
+		cpx #3
+		bne NEXTDIR4				;we are looking for files
+		tax					;we are looking for dirs
+		bne NEXTDIR3				;dir found
+		beq NEXTDIR				;oherwise loop
+		
+NEXTDIR4:	tax					;looking for files, but dir found
+		bne NEXTDIR
+
+NEXTDIR3:	ldy #DLEN+3				;copy 4-byte file length to bin
+NEXTDIR1:	lda (FATPTRS),Y
+		sta BIN-DLEN,Y
+		dey
+		cpy #DLEN
+		bcs NEXTDIR1
+
+		jsr BIN2DEC				;and convert to decimal	
+		clc
+NEXTDIR9:	rts
+
+
+;-------------------------------------------------------------------------------
+; adds 32 to the current position of PTR in directory sector
+; check FSTARTCL if root directory or not
+; read next sector/cluster required
+; return C = 1 if end of dir-cluster or zero-entry reached
 ;
-;
-;
+; todo: 
+;-------------------------------------------------------------------------------
 READDIR:        LDY #DNAME
 		LDA (FATPTRS),Y
-		BEQ READDIR9                            ;if zero end of dirs reached
+		BEQ READDIR3                            ;if zero: end of dirs reached
 
         	CLC
 		LDA FATPTRS
@@ -1279,40 +1226,54 @@ READDIR:        LDY #DNAME
 		ADC #0
 		STA FATPTRS+1		
 		CMP #(>BUFFER)+2
-		BNE READDIR8		                ;OK => CLC,RTS
+		BNE READDIR2		                ;OK => CLC,RTS
 
 		LDA FSTRTCL                             ;if root dir, inc sector
 		ORA FSTRTCL+1
-		BEQ CDIR4
+		bne READDIR1
 	
-		JSR INCSEC                              ;inc sector/cluster etc.
-	
+		JSR INCSEC7                             ;root dir, inc sector, reset ptr, readsec
+READDIR2:	CLC
+		RTS
+		
+READDIR1:	JSR INCSEC                              ;inc sector/cluster etc.
 		LDA #>FATEND
 		CMP FCURCLUS+1
-		BNE READDIR8
+		BNE READDIR2
 		LDA #<FATEND
 		CMP FCURCLUS
-		BNE READDIR8
-		BEQ READDIR9
-	
-CDIR4:		JSR INCSEC7                             ;inc sector, reset ptr, readsec
-READDIR8:	CLC
+		BNE READDIR2
+		
+READDIR3:	SEC
 		RTS
-READDIR9:	SEC
-		RTS
-;
-;
-;
+
+;-------------------------------------------------------------------------------
+; position to start of root-directory
+; SECTOR = DIRBASE, FSTRTCL = 0
+;-------------------------------------------------------------------------------
 CROOT:		LDX #4
 CROOT1:		LDA DIRBASE-1,X
 		STA SECTOR-1,X
 		DEX
 		bne CROOT1
 
-		STX FSTRTCL
+		STX FSTRTCL				;X = 0
 		STX FSTRTCL+1
 CROOT2:         JMP INCSEC6                             ;reset ptr, readsec
 
+;-------------------------------------------------------------------------------
+; save A in DIRFILE function code)
+; copy DIRCLUS to FSTARTCL
+; 
+; DIRFILE	0=ALL, 1=FILES, 2=FREE DIR, 3=DIR
+;-------------------------------------------------------------------------------
+DIRSTART:	STA DIRFILE
+		LDA DIRCLUS
+		STA FSTRTCL
+		LDA DIRCLUS+1
+		STA FSTRTCL+1
+		RTS
+		
 CHECKLEN:
 ;		LDX #3
 ;CL1:		LDA FRPOS,X
@@ -1910,8 +1871,8 @@ LOAXNCLUS:	ldx NEWCLUS
 ;-------------------------------------------------------------------------------
 ; load AX with FSTRTCL
 ;-------------------------------------------------------------------------------
-LOAXSCLUS:	ldx FSTRTCL
-		lda FSTRTCL+1
+LOAXSCLUS:	lda FSTRTCL+1
+		ldx FSTRTCL
 		rts
 
 ;-------------------------------------------------------------------------------
