@@ -95,7 +95,7 @@ NUMDIR		= V+4		;2
 NUMSECS		= V+6		;2
 MEDIA		= V+8		;1
 SECSFAT		= V+9		;2
-FCBCODE		= V+11 		;1
+dummy1		= V+11 		;1
 		
 dummy		= V+12		;4
 FATBASE		= V+16		;4
@@ -136,7 +136,7 @@ FLENGTH		= V+118		;2-byte file length (for DUP save function)
 JMPIND		= V+120		;1-byte holding $4C for JMP
 JMPPTR		= V+121		;2-byte jmp address
 		
-F		= V+122
+F		= JMPPTR+2
 		
 ;-------------------------------------------------------------------------------
 ; current File-Control-Block
