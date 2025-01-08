@@ -241,9 +241,7 @@ OPENF3:		LDA FILELEN,X				;copy filelen
 		DEX
 		BPL OPENF3	
 		
-OPENEND:	JSR FSEEK				;seek to FRPOS (either 0 or FILELEN)
-		LDY #1
-		RTS
+OPENEND:	JMP FSEEK				;seek to FRPOS (either 0 or FILELEN)
 
 ;-------------------------------------------------------------------------------
 ; Handler routine Close-Channel
@@ -2128,18 +2126,17 @@ FREECLUS1:	jsr STAXCCLUS				;store AX in FCURCLUS
 ; write FAT if FDIRTY <> 0
 ;-------------------------------------------------------------------------------
 WRITEFAT:	LDA FDIRTY
-		BEQ WRITEFA9
-
-		LDX #<LASTFAT
+		BNE WRITEFA1
+                RTS
+                
+WRITEFA1:	LDX #<LASTFAT
 		LDA #>LASTFAT
 		JSR SETSEC				;set sector-number in floppy/drive
-		BPL WRITEFA1
-WRITEFA9:	RTS					;error
 
-WRITEFA1:	JSR SETWRITE				;set DSTATS and DCOMND
+        	JSR SETWRITE				;set DSTATS and DCOMND
 		LDA #0					;reset dirty
 		STA FDIRTY
-		JMP RWFAT				;execute SIO command
+		BEQ RWFAT				;execute SIO command
 
 ;-------------------------------------------------------------------------------
 ; read a FAT sector. 
@@ -2165,10 +2162,9 @@ READFAT4:	LDA SECTOR,X
 		LDX #<SECTOR				;set sector to floppy/drive
 		LDA #>SECTOR
 		JSR SETSEC
-		BPL READFAT1
-		RTS					;error
 
 READFAT1:	JSR SETREAD				;set DSTATS and DCOMND
+
 RWFAT:		LDA #<FATBUF
 		STA DBUFLO
 		LDA #>FATBUF
@@ -2179,19 +2175,16 @@ RWFAT:		LDA #<FATBUF
 ; write a Data sector if DDIRTY <> 0
 ;-------------------------------------------------------------------------------
 WRITESEC:	LDA DDIRTY
-		BEQ WRITESE9
+		BNE WRITESE1
+		RTS
 		
-		LDX #<LASTSEC
+WRITESE1:	LDX #<LASTSEC
 		LDA #>LASTSEC
 		JSR SETSEC
-		BPL WRITESE1
-WRITESE9:	RTS
-
-WRITESE1:	JSR SETWRITE
-		BMI WRITESE9
+        	JSR SETWRITE
 		LDA #0
 		STA DDIRTY
-		JMP RWSEC
+		BEQ RWSEC
 
 ;-------------------------------------------------------------------------------
 ; read a data sector, save old sector if dirty
@@ -2205,7 +2198,6 @@ READSEC3:	LDA SECTOR,X
 		RTS
 
 READSEC2:	JSR WRITESEC
-		BMI READSECF2
 		
 		LDX #3					;set LASTSEC TO SECTOR
 READSEC4:	LDA SECTOR,X
@@ -2228,8 +2220,6 @@ READSECF2:	RTS
 READSECF1:	LDX #<SECTOR
 		LDA #>SECTOR
 		JSR SETSEC
-		BPL READSEC1
-		RTS
 
 READSEC1:	JSR SETREAD
 
@@ -2254,7 +2244,7 @@ RWSEC1:
 	.IF PLATFORM = 4
 		bit DSTATS
 		bpl RWSEC3		;read, get 512 bytes
-		dec DBYTLO+1		;write put 2 + 256 bytes
+		dec DBYTLO+1		;write put 2 * 256 bytes
 		jsr SIOV
 		jsr SETWRITE
 		inc DBUFHI
