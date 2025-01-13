@@ -142,11 +142,11 @@ INIT:		LDY #<HANDTAB
 ; Open, Close, Get Put, Status, Special, Init
 ;-------------------------------------------------------------------------------		
 HANDTAB:	.word OPENCHA-1		; open channel
-		.word CLOSECHA-1	; close ...
+		.word CLOSECHA-1	; close channel
 		.word GETCHA-1		; get channel
 		.word PUTCHA-1		; put channel
 		.word STATUSCHA-1	; status of channel
-		.word SPECIAL-1
+		.word SPECIAL-1         ; other XIO cmds
 		rts
 		
 STATUSCHA       = OK
@@ -275,10 +275,9 @@ CLOSE4:		LDA FILELEN,X
 		DEX
 		BPL CLOSE4
 	
-		JSR WRITESEC
+		JMP DELETE8
 	
-CLOSE5:		JSR CLOSEFCB
-		JMP OK
+CLOSE5:		JMP DELETE9
 
 ;-------------------------------------------------------------------------------
 ; Handler routine GET-Channel
@@ -575,7 +574,10 @@ PUTSLOW1:	LDA CIOCHR
 ;-------------------------------------------------------------------------------
 ; SPACIAL Handler routine dispatcher
 ;-------------------------------------------------------------------------------	
-SPECIAL:	jsr CHECKHAN				;position to ':'
+SPECIAL:	TSX
+                STX STACKP
+                
+                jsr CHECKHAN				;position to ':'
 		bmi SPECIAL3
 		
 		LDA ICCOMZ				;search for command in table
@@ -832,26 +834,7 @@ CHECKHA1:	iny
 		STY SAVEY
 		RTS
 
-;-------------------------------------------------------------------------------
-; Find an empty FCB in FCB table, clear it and swap-in
-;-------------------------------------------------------------------------------
-OPENFCB:	LDY #$FF
-		JSR GETFCB				;get FREE FCB
-		BMI OPENFCB2				;no free available
 
-OPENFCB1:	LDA ICIDNO
-		STA FCB0,X				;X holds offset to FCB0 from GETFCB
-		
-		LDA #0					;CLEAR FCB
-		LDY #FCBEND-F-1
-OPENFCB0:	STA FCB0+2,X
-		INX
-		DEY
-		BNE OPENFCB0
-
-		JSR SETFCB				;copy FCB from table to current FCB
-		LDY #1
-OPENFCB2:	RTS
 
 ;-------------------------------------------------------------------------------
 ;GET FCB Structure 0-3 
@@ -880,11 +863,34 @@ CLOSEFCB:	LDX FFCBOFF				;get OFFSET of current FCB
 		STA FIOCBNR
 		STA FCB0,X
 		RTS
+		
+;-------------------------------------------------------------------------------
+; Find an empty FCB in FCB table, clear it and swap-in
+;-------------------------------------------------------------------------------
+OPENFCB:        LDY #$FF
+                JSR GETFCB                              ;get FREE FCB
+                BPL OPENFCB1                            ;no free available
+                RTS
+                
+OPENFCB1:       LDA ICIDNO
+                STA FCB0,X                              ;X holds offset to FCB0 from GETFCB
+
+                LDA #0                                  ;CLEAR FCB
+                LDY #FCBEND-F-1
+OPENFCB0:       STA FCB0+2,X
+                INX
+                DEY
+                BNE OPENFCB0
 
 ;-------------------------------------------------------------------------------
 ; swap-out and swap-in from FCB table to current FCB
 ;-------------------------------------------------------------------------------
-SETFCB:		LDA FIOCBNR				;optimisation: current FCB
+SETFCB:		TSX
+                INX
+                INX
+                STX STACKP
+                
+                LDA FIOCBNR				;optimisation: current FCB
 		CMP ICIDNO				;already active?
 		BEQ SETFCB9				;yes, do nothing
 		
@@ -932,7 +938,8 @@ SWAPIN0:	LDA FCB0,X
 		LDA FCURPTR+1
 		STA FATPTRS+1
 		
-SETFCB9:	RTS
+SETFCB9:	LDY #1
+                RTS
 
 ;-------------------------------------------------------------------------------
 ; COPY FCB FSECTOR to SECTOR and FCURPTR to FATPTRS and read SECTOR
@@ -1694,10 +1701,8 @@ DATBAS1:	LSR DATBASE+1
 ; read first sector and see if MBR (FAT-16) or boot-sector (FAT-12)
 ;-------------------------------------------------------------------------------
 READBOOT:	
-		JSR CLEARSEC
-
-		JSR READSEC				;read first sector
-		BMI READB2				;Fat16, SD-Card: MBR; Fat12 Bootsec 
+		JSR CLEARSEC                            ;read MBR or Boot sector
+		JSR READSEC				;Fat16, SD-Card: MBR; Fat12 Bootsec 
 		
 		JSR CHECKFAT
 		BEQ READB3				;Fat16 MBR
@@ -1711,7 +1716,7 @@ READB3:		LDY #<(BUFFER+PART1)
 		JSR COPY32
 	
 		JSR READSEC
-		BMI READB2
+
 ;-------------------------------------------------------------------------------
 ; 0:FAT16 MBR
 ; 1:NO BOOTSEC/MBR
@@ -2242,14 +2247,14 @@ RWSEC1:
 		LDA #2
 		STA DBYTLO+1
 	.IF PLATFORM = 4
-		bit DSTATS
+		bit DSTATS              ;SALLY can recieve only 256byte chunks
 		bpl RWSEC3		;read, get 512 bytes
 		dec DBYTLO+1		;write put 2 * 256 bytes
-		jsr SIOV
+		jsr CALLSIO
 		jsr SETWRITE
 		inc DBUFHI
 	.ENDIF
-RWSEC3:		JMP SIOV
+RWSEC3:		JMP CALLSIO
 	.ENDIF
 	
 	
@@ -2296,12 +2301,14 @@ SETSEC:		STX DBUFLO
 		LDA #0
 		STA DBYTLO+1
 		STA DAUX1
-		STA DAUX2
-		JMP SIOV
-
+		STA DAUX2                       ;fall through
 	.ENDIF
 
-	
+CALLSIO:        JSR SIOV
+                BPL CALLSIO1
+                LDX STACKP
+                TXS
+CALLSIO1:       RTS
 ;*******************************************************************************
 ;*******************************************************************************
 ; debug and helper routines

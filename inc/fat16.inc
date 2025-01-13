@@ -95,7 +95,7 @@ NUMDIR		= V+4		;2
 NUMSECS		= V+6		;2
 MEDIA		= V+8		;1
 SECSFAT		= V+9		;2
-dummy1		= V+11 		;1
+STACKP		= V+11 		;1
 		
 dummy		= V+12		;4
 FATBASE		= V+16		;4
