@@ -55,6 +55,8 @@ STARTUP:
 		STA DOSINI+1
 	
 	.IF PLATFORM = 4
+		TSX
+		STX STCKPTR
 		LDA #<DUPINIT
 		STA DOSVEC
 		LDA #>DUPINIT
@@ -182,7 +184,10 @@ OPENFILE:	LDA #1					;FILE THERE?
 		JSR GETFILE			
 		BPL OPENEXIS				;YES
 			
-OPENNEW:	LDA ICAX1Z				;WRITE FILE without R/W or APPEND?
+OPENNEW:	;lda #'N'
+		;jsr PRINT
+		
+		LDA ICAX1Z				;WRITE FILE without R/W or APPEND?
 		AND #1+4+8				;
 		CMP #8					;only WRITE active
 		BEQ OPENNEW3				;yes
@@ -201,6 +206,9 @@ OPENEXIS:	LDA FATPTRS				;remember directory position, FATPTRS...
 		LDA FATPTRS+1
 		STA DIRPTR+1
 
+		JSR CHECKFCB
+		BMI OPENERR
+		
 		LDX #3					; ... and SECTOR
 SAVEDIR1:	LDA SECTOR,X
 		STA DIRSEC,X
@@ -214,16 +222,16 @@ OPENF1:		LDA (FATPTRS),Y				;AND FILELEN
 		DEY					;DIRENTRY
 		DEX			
 		BPL OPENF1			
-				
+		
 		LDA ICAX1Z				;IF READ
 		AND #4					;FINISHED
 		BNE OPENEND
-	
-		LDA ICAX1Z				;WRITE + APPEND?
-		AND #1		
+		
+		LDA ICAX1Z				
+		AND #1					;WRITE + APPEND?
 		BNE OPENAPPND				;YES
 	
-OPENWRIT:	jsr LOAXSCLUS				;LOAD AX with file start cluster
+		jsr LOAXSCLUS				;LOAD AX with file start cluster
 		jsr FREECLUS				;free all cluster associated with file
 		jsr STENDNCLUS				;store FATEND to NEWCLUS
 		jsr LOAXSCLUS
@@ -246,38 +254,47 @@ OPENEND:	JMP FSEEK				;seek to FRPOS (either 0 or FILELEN)
 ;-------------------------------------------------------------------------------
 ; Handler routine Close-Channel
 ;-------------------------------------------------------------------------------
-CLOSECHA:	JSR SETFCB
+CLOSECHA:	jsr SETFCB
 
-		LDA ICAX1Z
-		AND #8
-		BEQ CLOSE5				;just close FCB if read access
+;		lda #'C'
+;		jsr PRINT
 
-		JSR WRITEFAT
+		lda ICAX1Z
+		and #4
+		bne CLOSE5				;just close FCB if read access
+
+		jsr WRITEFAT
 	
-		LDX #3					;otherwise update directory 
-CLOSE3:		LDA DIRSEC,X				;with file-length
-		STA SECTOR,X
-		DEX
-		BPL CLOSE3
-		JSR READSEC
+		ldx #3					;otherwise update directory 
+CLOSE3:		lda DIRSEC,X				;with file-length
+;		jsr PUTHEX
+		sta SECTOR,X				;first get directory sector
+		dex
+		bpl CLOSE3
+
+;		jsr NEWLINE
+		jsr READSEC
+			
+		lda DIRPTR				;point into the dir-sec
+		sta FATPTRD
+		lda DIRPTR+1
+		sta FATPTRD+1
+		
+		ldy #DLEN+3				;copy file-length into direntry
+		sty DDIRTY
+		ldx #3
+CLOSE4:		lda FILELEN,X
+		sta (FATPTRD),Y
+		dey
+		dex
+		bpl CLOSE4
+		
+		jmp DELETE8				;WRITESEC, CLOSEFCB, OK
 	
-		LDA DIRPTR
-		STA FATPTRD
-		LDA DIRPTR+1
-		STA FATPTRD+1
-	
-		LDY #DLEN+3
-		STY DDIRTY
-		LDX #3
-CLOSE4:		LDA FILELEN,X
-		STA (FATPTRD),Y
-		DEY
-		DEX
-		BPL CLOSE4
-	
-		JMP DELETE8
-	
-CLOSE5:		JMP DELETE9
+CLOSE5:
+;		LDA #'-'
+;		jsr PRINT
+		jmp DELETE9				;CLOSEFCB, OK
 
 ;-------------------------------------------------------------------------------
 ; Handler routine GET-Channel
@@ -575,7 +592,7 @@ PUTSLOW1:	LDA CIOCHR
 ; SPACIAL Handler routine dispatcher
 ;-------------------------------------------------------------------------------	
 SPECIAL:	TSX
-                STX STACKP
+                STX STCKPTR
                 
                 jsr CHECKHAN				;position to ':'
 		bmi SPECIAL3
@@ -618,11 +635,18 @@ XJMPTABL:	.byte <(DELETE-1)
 ; SPECIAL-handler for DELETE file
 ; todo: directory
 ;-------------------------------------------------------------------------------
-DELETE:		LDA #1					;does file exist?
+DELETE:		
+		JSR OPENFCB
+		BMI NOTOK
+				
+		LDA #1					;does file exist?
 		JSR GETFILE
 		BMI DELETE9				;no or other error, return OK
 
-DELETE2:	LDA FATPTRS				;save pointer into directory
+DELETE2:	JSR CHECKFCB
+		BMI DELETE3
+				
+		LDA FATPTRS				;save pointer into directory
 		PHA
 		LDA FATPTRS+1
 		PHA
@@ -631,20 +655,29 @@ DELETE2:	LDA FATPTRS				;save pointer into directory
 		LDA (FATPTRS),Y
 		TAX
 		INY
-		LDA (FATPTRS),Y
-	
+		LDA (FATPTRS),Y	
 		JSR FREECLUS				;free all cluster
 	
 		PLA
 		STA FATPTRS+1
 		PLA
 		STA FATPTRS
+
+;		lda #'P'
+;		jsr PRINT
+;		lda FATPTRS+1
+;		jsr PUTHEX
+;		lda FATPTRS
+;		jsr PUTHEX
+;		jsr NEWLINE
 	
 		LDY #DNAME
 		LDA #$E5
 		STA (FATPTRS),Y
 		STA DDIRTY
 	
+DELETE3:	;tya
+		;jsr PUTHEX
 		JSR NEXTFILE
 		BPL DELETE2
 	
@@ -850,7 +883,7 @@ GETFCB0:	TYA
 		ADC #64
 		TAX
 		BNE GETFCB0
-		LDY #161		;TOO MANY
+		LDY #161		;TOO MANY open files
 		RTS
 GETFCB9:	LDY #1
 		RTS			;OPEN FILES
@@ -858,19 +891,46 @@ GETFCB9:	LDY #1
 ;-------------------------------------------------------------------------------
 ; mark current FCB as unassigned
 ;-------------------------------------------------------------------------------
-CLOSEFCB:	LDX FFCBOFF				;get OFFSET of current FCB		
-		LDA #$FF				;switch off copy and original FCB
-		STA FIOCBNR
-		STA FCB0,X
-		RTS
+CLOSEFCB:	ldx FFCBOFF				;get OFFSET of current FCB		
+		lda #$FF				;switch off copy and original FCB
+		sta FIOCBNR
+		sta FCB0,X
+		rts
+		
+;-------------------------------------------------------------------------------
+; check if another file with same cluster open
+;-------------------------------------------------------------------------------
+CHECKFCB:	ldx #0
+CHECKFCB2:	lda FCB0,X
+		cmp #$FF
+		beq CHECKFCB1				;FCB EMPTY
+		cmp ICIDNO
+		beq CHECKFCB1				;own FCB
+		
+		ldy #DCLUS
+		lda (FATPTRS),Y
+		cmp FCB0+2,X
+		bne CHECKFCB1
+		iny
+		lda (FATPTRS),Y
+		cmp FCB0+3,X
+		bne CHECKFCB1
+		ldy #167
+		rts		
+			
+CHECKFCB1:	txa
+		clc
+		adc #64
+		tax
+		bne CHECKFCB2
+		rts
 		
 ;-------------------------------------------------------------------------------
 ; Find an empty FCB in FCB table, clear it and swap-in
 ;-------------------------------------------------------------------------------
 OPENFCB:        LDY #$FF
                 JSR GETFCB                              ;get FREE FCB
-                BPL OPENFCB1                            ;no free available
-                RTS
+                BMI SETFCB2				;no free available
                 
 OPENFCB1:       LDA ICIDNO
                 STA FCB0,X                              ;X holds offset to FCB0 from GETFCB
@@ -888,11 +948,11 @@ OPENFCB0:       STA FCB0+2,X
 SETFCB:		TSX
                 INX
                 INX
-                STX STACKP
+                STX STCKPTR
                 
                 LDA FIOCBNR				;optimisation: current FCB
 		CMP ICIDNO				;already active?
-		BEQ SETFCB9				;yes, do nothing
+		BEQ SETFCB1				;yes, do nothing
 		
 SWAPFCB:	CMP #$FF				;current FCB unassigned?
 		BEQ SWAPIN				;yes, just swapin FCB
@@ -930,7 +990,9 @@ SWAPIN0:	LDA FCB0,X
 	
 		LDA ICCOMZ				;if not OPEN command, read current sector
 		CMP #OPEN				;of file and set PTR
-		BEQ SETFCB9
+		BEQ SETFCB1
+		CMP #CDELETE
+		BEQ SETFCB1
 		
 		jsr INCSEC5
 		LDA FCURPTR
@@ -938,8 +1000,8 @@ SWAPIN0:	LDA FCB0,X
 		LDA FCURPTR+1
 		STA FATPTRS+1
 		
-SETFCB9:	LDY #1
-                RTS
+SETFCB1:	LDY #1
+SETFCB2:	RTS
 
 ;-------------------------------------------------------------------------------
 ; COPY FCB FSECTOR to SECTOR and FCURPTR to FATPTRS and read SECTOR
@@ -1023,8 +1085,7 @@ ERR169:		JSR CLOSEFCB				;todo: Cluster not freed!
 INITDIR1:
 		LDY #0					;DIRNAME IN
 		STY DIRFILE				;RESET DIRFILE = all files
-INITDIR2:
-		LDA DIRTEXT,Y				;DIR ENTRY
+INITDIR2:	LDA DIRTEXT,Y				;DIR ENTRY
 		STA (FATPTRS),Y			
 		INY			
 		CPY #11			
@@ -1045,6 +1106,17 @@ INITDIR3:	STA (FATPTRS),Y				;REST
 		PLA
 		STA FCURCLUS+1
 		STA (FATPTRS),Y	
+		
+;		lda FATPTRS+1
+;		jsr PUTHEX
+;		lda FATPTRS
+;		jsr PUTHEX
+;		lda FCURCLUS+1
+;		jsr PUTHEX
+;		lda FCURCLUS
+;		jsr PUTHEX
+;		jsr NEWLINE
+		
 		RTS
 
 ;-------------------------------------------------------------------------------
@@ -1268,7 +1340,7 @@ READDIR:        LDY #DNAME
 		LDA FSTRTCL                             ;if root dir, inc sector
 		ORA FSTRTCL+1
 		bne READDIR1
-	
+			
 		JSR INCSEC7                             ;root dir, inc sector, reset ptr, readsec
 READDIR2:	CLC
 		RTS
@@ -1363,12 +1435,20 @@ INCRPOS1:	RTS
 ; increments 4-byte SECTOR
 ;-------------------------------------------------------------------------------
 INCSECTO:	ldx #0
-INCSECTO2:	inc SECTOR,x
+INCSECTO2:	inc SECTOR,X
 		bne INCSECT1
 		inx
 		cpx #4
 		bne INCSECTO2
-INCSECT1:	rts
+		
+INCSECT1:
+		ldx #0
+;INCSECT2:	lda SECTOR,x
+;		jsr PUTHEX
+;		inx
+;		cpx #4
+;		bne INCSECT2
+		rts
 
 
 ;-------------------------------------------------------------------------------
@@ -1603,10 +1683,10 @@ VSET2:		TAX					;into FCB
 		STA FCB3
 
 
-		LDA #<BUFFER
-		STA BUFADRL
-		LDA #>BUFFER
-		STA BUFADRH
+;		LDA #<BUFFER
+;		STA BUFADRL
+;		LDA #>BUFFER
+;		STA BUFADRH
 		
 		LDA #VALIDNA2-VALIDCHA-2
 		STA VALIDS
@@ -1703,7 +1783,7 @@ DATBAS1:	LSR DATBASE+1
 READBOOT:	
 		JSR CLEARSEC                            ;read MBR or Boot sector
 		JSR READSEC				;Fat16, SD-Card: MBR; Fat12 Bootsec 
-		
+
 		JSR CHECKFAT
 		BEQ READB3				;Fat16 MBR
 		CMP #3
@@ -1972,8 +2052,17 @@ COMPFAT12:	tay					;copy for later use
 		rol
 		adc #>FATBUF
 		sta FATPTRS+1
+
+;		lda SECTOR+1
+;		jsr PUTHEX
+;		lda SECTOR
+;		jsr PUTHEX
 		
+;		lda #'+'
+;		jsr PRINT		
 		jsr READFAT
+;		lda #'-'
+;		jsr PRINT
 		
 		plp					;restore carry
 		ldy #0					;return N=0
@@ -2134,7 +2223,12 @@ WRITEFAT:	LDA FDIRTY
 		BNE WRITEFA1
                 RTS
                 
-WRITEFA1:	LDX #<LASTFAT
+WRITEFA1:	;LDA #'F'
+		;JSR PRINT
+		;LDA #'W'
+		;JSR PRINT	
+		
+		LDX #<LASTFAT
 		LDA #>LASTFAT
 		JSR SETSEC				;set sector-number in floppy/drive
 
@@ -2158,6 +2252,11 @@ READFAT3:	LDA SECTOR,X				;compare SECTOR with LASTFAT
 
 READFAT2:	JSR WRITEFAT				;write old sector if dirty
 
+		;LDA #'F'
+		;JSR PRINT
+		;LDA #'R'
+		;JSR PRINT
+		
 		LDX #3					;copy sector to LASTFAT
 READFAT4:	LDA SECTOR,X
 		STA LASTFAT,X
@@ -2183,7 +2282,12 @@ WRITESEC:	LDA DDIRTY
 		BNE WRITESE1
 		RTS
 		
-WRITESE1:	LDX #<LASTSEC
+WRITESE1:	;LDA #'S'
+		;JSR PRINT
+		;LDA #'W'
+		;JSR PRINT
+		
+		LDX #<LASTSEC
 		LDA #>LASTSEC
 		JSR SETSEC
         	JSR SETWRITE
@@ -2203,6 +2307,10 @@ READSEC3:	LDA SECTOR,X
 		RTS
 
 READSEC2:	JSR WRITESEC
+		;LDA #'S'
+		;JSR PRINT
+		;LDA #'R'
+		;JSR PRINT
 		
 		LDX #3					;set LASTSEC TO SECTOR
 READSEC4:	LDA SECTOR,X
@@ -2228,9 +2336,11 @@ READSECF1:	LDX #<SECTOR
 
 READSEC1:	JSR SETREAD
 
-RWSEC:		LDA BUFADRL
+RWSEC:		LDA #<BUFFER
+		;LDA BUFADRL
 		STA DBUFLO
-		LDA BUFADRH
+		LDA #>BUFFER
+		;LDA BUFADRH
 		STA DBUFHI
 
 	.IF PLATFORM <= 1
@@ -2286,7 +2396,17 @@ SETWRITE:
 SETSEC:		jmp setSector
 	.ELSE	
 SETSEC:		STX DBUFLO
+		STX FATPTRD
 		STA DBUFLO+1
+		STA FATPTRD+1
+;		ldy #1
+;		lda (FATPTRD),Y
+;		jsr PUTHEX
+;		dey
+;		lda (FATPTRD),Y		
+;		jsr PUTHEX
+;		jsr NEWLINE
+		
 		LDA #$31
 		STA DDEVIC
 		LDA #2
@@ -2306,8 +2426,9 @@ SETSEC:		STX DBUFLO
 
 CALLSIO:        JSR SIOV
                 BPL CALLSIO1
-                LDX STACKP
+                LDX STCKPTR
                 TXS
+		TYA
 CALLSIO1:       RTS
 ;*******************************************************************************
 ;*******************************************************************************
@@ -2667,8 +2788,7 @@ EOUTCH:		TAX
 ;		jsr PUTHEX
 ;		dex
 ;		bpl DUMPSEC1
-;		lda #EOL
-;		jsr PRINT
+;		jsr NEWLINE
 ;		pla
 ;		tax
 ;		pla

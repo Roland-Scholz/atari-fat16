@@ -39,6 +39,7 @@ FATPTRS		= $0000
 FATPTRD		= $0002
 SECTOR		= FMSZPG
 SHIFT		= FMSZPG+4
+STCKPTR		= FMSZPG+5
 	.ENDIF
 
 ;--------------------------------------------------------------
@@ -95,7 +96,7 @@ NUMDIR		= V+4		;2
 NUMSECS		= V+6		;2
 MEDIA		= V+8		;1
 SECSFAT		= V+9		;2
-STACKP		= V+11 		;1
+DUMMY1		= V+11 		;1
 		
 dummy		= V+12		;4
 FATBASE		= V+16		;4
@@ -175,11 +176,16 @@ FCB1		= FCB0+64
 FCB2		= FCB1+64
 FCB3		= FCB2+64
 	
+;-------------------------------------------------------------------------------
+; Offsets Directory-Entry
+;-------------------------------------------------------------------------------
 DNAME		= 0
 DEXT		= 8
 DATTRIB		= 11
-DCLUS		= $1A
-DLEN		= $1C
+DRESERV		= 12
+DCLUS		= 26
+DLEN		= 28
+
 PART1		= $1C6
 	.IF PLATFORM <> 4
 FATEND		= $FFFF

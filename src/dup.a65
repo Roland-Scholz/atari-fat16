@@ -43,20 +43,20 @@ DUPINIT1:	STA	FNAME,x
 		STA	JMPIND
 
 	.IF PLATFORM = 2 || PLATFORM = 4
-		LDX	#$70
-		LDA	#OPEN
-		STA 	ICCOM,X
-		LDA 	#4
-		STA 	ICAX1,X
-		STA 	ICBLH,X
-		LDA 	#<KBDNAME
-		STA 	ICBAL,X
-		LDA 	#>KBDNAME
-		STA 	ICBAH,X
-		LDA 	#0
-		STA 	ICBLL,X
-		STA 	ICAX2,X
-		JSR 	CIOV
+;		LDX	#$70
+;		LDA	#OPEN
+;		STA 	ICCOM,X
+;		LDA 	#4
+;		STA 	ICAX1,X
+;		STA 	ICBLH,X
+;		LDA 	#<KBDNAME
+;		STA 	ICBAL,X
+;		LDA 	#>KBDNAME
+;		STA 	ICBAH,X
+;		LDA 	#0
+;		STA 	ICBLL,X
+;		STA 	ICAX2,X
+;		JSR 	CIOV
 	.ENDIF
 
 MENU:		CLC
@@ -621,16 +621,26 @@ ENTERADRG:	ASL
 ENTERADREND:	LDA	#EOL
 		JMP	JPRINT		
 		
-GETCHAR:	LDX	#$70
-		LDA	#GETCHR
-		STA 	ICCOM,X
-		LDA 	#0
-		STA 	ICBLL,X
-		STA 	ICBLH,X
-	.IF PLATFORM <= 1
-		STA 	ICBLB,X
-	.ENDIF
-		JSR 	CIOV
+GETCHAR:	lda	#>(UPPER-1)
+		pha
+		lda	#<(UPPER-1)
+		pha
+		lda	$e425
+		pha
+		lda	$e424
+		pha
+		rts
+
+;		LDX	#$70
+;		LDA	#GETCHR
+;		STA 	ICCOM,X
+;		LDA 	#0
+;		STA 	ICBLL,X
+;		STA 	ICBLH,X
+;	.IF PLATFORM <= 1
+;		STA 	ICBLB,X
+;	.ENDIF
+;		JSR 	CIOV
 		
 UPPER:		cmp	#'a'
 		bcc	UPPEREND
@@ -641,8 +651,8 @@ UPPEREND:	rts
 		
 		
 ;
-DUPMENU:	.byte CLS
-		;.byte EOL
+DUPMENU:	;.byte CLS
+		.byte EOL
 		.byte "FAT-1"
 	.IF PLATFORM = 4
 		.byte "2"
